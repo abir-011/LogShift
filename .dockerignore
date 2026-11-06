@@ -1,0 +1,28 @@
+# Environment and secrets
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Local database and generated files
+db.sqlite3
+staticfiles/
+
+# OS files
+.DS_Store
+Thumbs.db

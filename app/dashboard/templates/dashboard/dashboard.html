@@ -1,0 +1,222 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogShift | Log Explorer</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #111827;
+            color: #f9fafb;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 35px;
+        }
+
+        h1 { margin: 0; color: #60a5fa; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #1f2937;
+            padding: 22px;
+            border-radius: 10px;
+        }
+
+        .card h3 {
+            color: #9ca3af;
+            margin-top: 0;
+        }
+
+        .card p {
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            padding: 11px;
+            background: #1f2937;
+            color: white;
+            border: 1px solid #374151;
+            border-radius: 6px;
+        }
+
+        button {
+            padding: 11px 18px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1f2937;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #374151;
+        }
+
+        th { color: #9ca3af; }
+
+        .ERROR { color: #f87171; }
+        .WARNING { color: #fbbf24; }
+        .INFO { color: #60a5fa; }
+
+        @media (max-width: 700px) {
+            .stats { grid-template-columns: 1fr; }
+            .filters { flex-wrap: wrap; }
+            table { font-size: 12px; }
+            body { padding: 15px; }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>LogShift</h1>
+    <span>Log Explorer</span>
+</header>
+
+<section class="stats">
+    <div class="card">
+        <h3>Total Logs</h3>
+        <p id="total-logs">-</p>
+    </div>
+
+    <div class="card">
+        <h3>Errors</h3>
+        <p id="error-count">-</p>
+    </div>
+
+    <div class="card">
+        <h3>Warnings</h3>
+        <p id="warning-count">-</p>
+    </div>
+</section>
+
+<section class="filters">
+    <input id="search" placeholder="Search messages...">
+
+    <select id="level">
+        <option value="">All Levels</option>
+        <option value="DEBUG">DEBUG</option>
+        <option value="INFO">INFO</option>
+        <option value="WARNING">WARNING</option>
+        <option value="ERROR">ERROR</option>
+        <option value="CRITICAL">CRITICAL</option>
+    </select>
+
+    <input id="service" placeholder="Service name">
+
+    <button onclick="loadLogs()">Search</button>
+</section>
+
+<h2>Recent Logs</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Event ID</th>
+            <th>Service</th>
+            <th>Level</th>
+            <th>Message</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+
+    <tbody id="logs-table">
+        <tr><td colspan="5">Loading logs...</td></tr>
+    </tbody>
+</table>
+
+<script>
+    async function loadStats() {
+        const response = await fetch("/api/v1/stats/");
+        const data = await response.json();
+
+        document.getElementById("total-logs").textContent = data.total_logs;
+        document.getElementById("error-count").textContent = data.error_count;
+        document.getElementById("warning-count").textContent = data.warning_count;
+    }
+
+    async function loadLogs() {
+        const params = new URLSearchParams();
+
+        const search = document.getElementById("search").value;
+        const level = document.getElementById("level").value;
+        const service = document.getElementById("service").value;
+
+        if (search) params.set("search", search);
+        if (level) params.set("level", level);
+        if (service) params.set("service_name", service);
+
+        const response = await fetch(`/api/v1/logs/?${params}`);
+        const data = await response.json();
+
+        const tbody = document.getElementById("logs-table");
+        tbody.innerHTML = "";
+
+        data.results.forEach(log => {
+            const row = document.createElement("tr");
+
+            [
+                log.event_id,
+                log.service_name,
+                log.level,
+                log.message,
+                new Date(log.timestamp).toLocaleString()
+            ].forEach((value, index) => {
+                const cell = document.createElement("td");
+                cell.textContent = value;
+
+                if (index === 2) {
+                    cell.className = log.level;
+                }
+
+                row.appendChild(cell);
+            });
+
+            tbody.appendChild(row);
+        });
+
+        if (data.results.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5">No logs found.</td></tr>';
+        }
+    }
+
+    loadStats();
+    loadLogs();
+</script>
+
+</body>
+</html>
