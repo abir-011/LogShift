@@ -4,7 +4,7 @@
 
 LogShift collects structured logs from multiple simulated services, stores them centrally, and provides APIs and a dashboard to search, filter, and monitor application events.
 
-The project is designed to demonstrate practical DevOps concepts, including Docker containerization, persistent storage, health checks, automated testing, CI/CD, and cloud deployment.
+The project demonstrates practical DevOps concepts, including Docker containerization, persistent storage, health checks, automated testing, container registries, cloud infrastructure, and application deployment.
 
 ## Features
 
@@ -21,8 +21,13 @@ The project is designed to demonstrate practical DevOps concepts, including Dock
 - Simulated payment, authentication, and order services.
 - Automated tests using Django REST Framework.
 - Docker Compose-based local deployment.
+- AWS EC2 deployment using Docker containers.
+- Private Docker image storage using Amazon ECR.
+- Persistent PostgreSQL storage using Docker named volumes backed by EBS.
 
 ## Architecture
+
+### Local deployment
 
 ```text
  payment-service ──┐
@@ -34,7 +39,45 @@ The project is designed to demonstrate practical DevOps concepts, including Dock
                          Log Explorer
 ```
 
-The simulated services generate structured events and send them to LogShift over HTTP. Django validates and stores the events in PostgreSQL. The dashboard retrieves aggregated statistics and log records through the REST API.
+### AWS deployment
+
+```text
+              Developer Machine
+                     |
+                Docker Build
+                     |
+                     v
+              Amazon ECR
+             (Private Registry)
+                     |
+                Docker Pull
+                     |
+                     v
+              AWS EC2 Instance
+               (Ubuntu 24.04)
+                     |
+              Docker Compose
+                /        \
+               /          \
+              v            v
+        Django +         PostgreSQL
+        Gunicorn         Container
+              |            |
+              |            v
+              |       Docker Named
+              |          Volume
+              |            |
+              |            v
+              |         AWS EBS
+              |
+              v
+         REST API
+              |
+              v
+          Dashboard
+```
+
+The application and database run as separate containers on a single EC2 instance. PostgreSQL uses a Docker named volume backed by the instance's EBS storage, allowing database records to survive container recreation and EC2 stop/start operations.
 
 ## Technology Stack
 
@@ -49,6 +92,13 @@ The simulated services generate structured events and send them to LogShift over
 | Frontend | HTML, CSS, JavaScript |
 | API testing | Postman |
 | Automated testing | Django Test Framework |
+| Cloud provider | AWS |
+| Container registry | Amazon ECR |
+| Compute | Amazon EC2 |
+| Storage | Amazon EBS (gp3) |
+| Operating system | Ubuntu Server 24.04 LTS |
+| Instance access | SSH |
+| Cloud authentication | AWS IAM roles |
 
 ## Project Structure
 
@@ -67,13 +117,14 @@ LogShift/
 ├── docs/
 ├── Dockerfile
 ├── docker-compose.yml
+├── docker-compose.prod.yml
 ├── .dockerignore
 ├── .gitignore
 ├── .env.example
 └── README.md
 ```
 
-## Getting Started
+## Getting Started — Local Deployment
 
 ### Prerequisites
 
@@ -84,15 +135,13 @@ LogShift/
 ### 1. Clone the repository
 
 ```bash
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/abir-011/LogShift.git
 cd LogShift
 ```
 
 ### 2. Configure environment variables
 
 Create a `.env` file in the project root using `.env.example` as a reference.
-
-Configure the following values:
 
 ```env
 SECRET_KEY=your-local-secret-key
@@ -135,6 +184,171 @@ To create an admin account:
 ```bash
 docker compose exec web python manage.py createsuperuser
 ```
+
+## AWS Deployment — Phase 2
+
+LogShift was manually deployed to AWS using Amazon EC2 and Amazon ECR.
+
+### Infrastructure configuration
+
+| Component | Configuration |
+|---|---|
+| AWS Region | Asia Pacific (Sydney) — `ap-southeast-2` |
+| EC2 instance | `t3.small` |
+| Operating system | Ubuntu Server 24.04 LTS |
+| Architecture | x86_64 |
+| EBS storage | 12 GiB gp3 |
+| Container registry | Amazon ECR |
+| Application server | Gunicorn |
+| Database | PostgreSQL 16 |
+| Deployment | Docker Compose |
+
+### 1. Container image publishing
+
+The application image is built locally and pushed to a private Amazon ECR repository.
+
+ECR repository:
+
+```text
+522979904445.dkr.ecr.ap-southeast-2.amazonaws.com/logshift
+```
+
+Authenticate Docker with ECR:
+
+```bash
+aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 522979904445.dkr.ecr.ap-southeast-2.amazonaws.com
+```
+
+Build the application image:
+
+```bash
+docker compose build web
+```
+
+Tag the image:
+
+```bash
+docker tag logshift-web:latest 522979904445.dkr.ecr.ap-southeast-2.amazonaws.com/logshift:latest
+```
+
+Push the image:
+
+```bash
+docker push 522979904445.dkr.ecr.ap-southeast-2.amazonaws.com/logshift:latest
+```
+
+### 2. EC2 configuration
+
+The EC2 instance runs Docker Engine, Docker Compose, and AWS CLI.
+
+An IAM instance role named `LogShiftEC2ECRRole` provides read-only access to the private ECR repository.
+
+This allows EC2 to authenticate with ECR using temporary IAM credentials instead of storing long-lived AWS access keys on the server.
+
+### 3. Pull the application image on EC2
+
+Authenticate Docker on the EC2 instance:
+
+```bash
+aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 522979904445.dkr.ecr.ap-southeast-2.amazonaws.com
+```
+
+Pull the image:
+
+```bash
+docker pull 522979904445.dkr.ecr.ap-southeast-2.amazonaws.com/logshift:latest
+```
+
+### 4. Production environment configuration
+
+The production deployment uses a separate `.env` file on the EC2 instance.
+
+Important settings:
+
+```env
+SECRET_KEY=your-production-secret
+DEBUG=False
+ALLOWED_HOSTS=YOUR_EC2_PUBLIC_IP,localhost,127.0.0.1
+
+DB_NAME=logshift
+DB_USER=logshift_user
+DB_PASSWORD=your-strong-production-password
+DB_HOST=db
+DB_PORT=5432
+```
+
+Production secrets are generated separately from local development credentials and are never committed to GitHub.
+
+Restrict access to the environment file:
+
+```bash
+chmod 600 ~/LogShift/.env
+```
+
+### 5. Start the production deployment
+
+From the deployment directory:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Apply database migrations:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
+```
+
+Check container status:
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+Check application health:
+
+```bash
+curl http://localhost:8000/health/
+```
+
+### 6. Production access
+
+The dashboard and APIs are accessible through the EC2 public IPv4 address.
+
+```text
+http://YOUR_EC2_PUBLIC_IP:8000/
+```
+
+The Security Group restricts SSH (22) and application access (8000) to the developer's public IP. PostgreSQL (5432) is not exposed publicly.
+
+The current learning deployment uses HTTP rather than HTTPS and should not be used to transmit sensitive information.
+
+### 7. EC2 lifecycle management
+
+Stop the application containers without deleting persistent data:
+
+```bash
+docker compose -f docker-compose.prod.yml down
+```
+
+Start them again:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Stopping the EC2 instance preserves its EBS-backed database volume. However, its automatically assigned public IPv4 address can change after a stop/start operation.
+
+If the public IP changes:
+
+1. Update `ALLOWED_HOSTS` in the production `.env` file.
+2. Recreate the web container to load the updated environment:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --force-recreate web
+```
+
+3. Check whether the Security Group's SSH and application inbound rules still match your current public IP.
 
 ## API Endpoints
 
@@ -244,7 +458,13 @@ volumes:
   postgres_data:
 ```
 
-This allows database records to survive container restarts and container recreation.
+In the AWS deployment, this volume is backed by the EC2 instance's EBS storage.
+
+Persistence was verified by:
+
+- Recreating Docker containers without deleting the named volume.
+- Stopping and starting the EC2 instance.
+- Confirming that previously ingested production log events remained available.
 
 To restart the database:
 
@@ -260,33 +480,41 @@ docker compose up -d --force-recreate db
 
 **Warning:** `docker compose down -v` deletes named volumes and therefore removes the stored database data.
 
-## Stopping the Application
+## Security and Cost Considerations
 
-```bash
-docker compose down
-```
-
-This stops and removes the containers without deleting the PostgreSQL volume.
+- Production uses `DEBUG=False`.
+- Production secrets are kept outside version control.
+- EC2 uses an IAM instance role for ECR image pulls.
+- PostgreSQL is not publicly exposed.
+- SSH and application inbound access are restricted by Security Group rules.
+- The deployment avoids managed load balancers, NAT Gateways, RDS, and Kubernetes.
+- A monthly AWS budget with notifications is configured.
+- EC2 compute charges can be reduced by stopping the instance when it is not in use.
+- EBS storage charges continue while the EC2 instance is stopped.
+- AWS promotional credits and Free Plan eligibility are subject to account terms and expiry.
 
 ## Project Roadmap
 
 - [x] Phase 1 — Local application and Docker Compose setup.
-- [ ] Phase 2 — Manual AWS deployment.
+- [x] Phase 2 — Manual AWS deployment using EC2 and ECR.
 - [ ] Phase 3 — CI/CD automation and Terraform infrastructure.
 - [ ] Phase 4 — Migration to Google Cloud Platform.
 - [ ] Phase 5 — Optional Kubernetes deployment.
 
 ## Learning Objectives
 
-This project is intended to demonstrate practical experience with:
+This project demonstrates practical experience with:
 
 - Containerization and container lifecycle management.
 - Application and database separation.
 - Persistent storage and service health checks.
 - REST API development and automated testing.
-- Infrastructure provisioning.
-- CI/CD pipeline automation.
-- Cloud deployment and migration.
+- Container image building and publishing.
+- Amazon ECR and EC2 integration.
+- IAM roles and cloud authentication.
+- Manual cloud infrastructure provisioning.
+- Application deployment and operational troubleshooting.
+- Infrastructure cost and security considerations.
 
 ---
 
