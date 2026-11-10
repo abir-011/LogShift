@@ -54,3 +54,6 @@ jobs:
       - name: Run Django tests
         working-directory: app
         run: python manage.py test
+
+      - name: Build Docker image
+        run: docker build -t logshift:test .
