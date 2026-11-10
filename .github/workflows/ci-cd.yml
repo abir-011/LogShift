@@ -56,4 +56,5 @@ jobs:
         run: python manage.py test
 
       - name: Build Docker image
-        run: docker build -t logshift:test .
+        run: |
+          docker build -t logshift:${GITHUB_SHA::7} .
