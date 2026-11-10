@@ -2,12 +2,22 @@
 # LogShift - Automatic EC2 Public IP Updater
 
 $Region = "ap-southeast-2"
-$InstanceId = "i-0a5fb35c151a5e0df"  # Replace with your actual EC2 instance ID
 $EnvFile = Join-Path $PSScriptRoot "..\.env"
+
+# Read EC2 Instance ID from local .env
+$InstanceLine = Get-Content $EnvFile |
+    Where-Object { $_ -match '^EC2_INSTANCE_ID=' }
+
+if (-not $InstanceLine) {
+    Write-Host "EC2_INSTANCE_ID not found in .env" -ForegroundColor Red
+    exit 1
+}
+
+$InstanceId = ($InstanceLine -split '=', 2)[1].Trim()
 
 Write-Host "Fetching LogShift EC2 public IP..." -ForegroundColor Cyan
 
-# Retrieve the current public IP
+# Retrieve current public IP
 $PublicIp = aws ec2 describe-instances `
     --region $Region `
     --instance-ids $InstanceId `
@@ -21,15 +31,13 @@ if ($LASTEXITCODE -ne 0 -or
     exit 1
 }
 
-# Read the existing .env file
+# Update only ALLOWED_HOSTS
 $Content = Get-Content $EnvFile
 
-# Update only ALLOWED_HOSTS
 $UpdatedContent = $Content -replace `
     '^ALLOWED_HOSTS=.*$', `
     "ALLOWED_HOSTS=$PublicIp,localhost,127.0.0.1"
 
-# Save the updated .env file
 $UpdatedContent | Set-Content $EnvFile
 
 Write-Host "Successfully updated ALLOWED_HOSTS!" -ForegroundColor Green
