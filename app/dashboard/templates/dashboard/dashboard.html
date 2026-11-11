@@ -4,218 +4,751 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LogShift | Log Explorer</title>
+    <title>LogShift | Observability Dashboard</title>
 
     <style>
-        body {
-            margin: 0;
-            padding: 30px;
-            background: #111827;
-            color: #f9fafb;
-            font-family: Arial, sans-serif;
+        :root {
+            --bg: #0b1120;
+            --sidebar: #101a2c;
+            --surface: #172337;
+            --surface-hover: #1d2b42;
+            --border: #26364e;
+            --text: #e8eef8;
+            --muted: #8fa1ba;
+            --blue: #5798ff;
+            --green: #34d399;
+            --red: #fb7185;
+            --yellow: #fbbf24;
         }
 
-        header {
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, -apple-system, BlinkMacSystemFont,
+                         "Segoe UI", sans-serif;
+            min-height: 100vh;
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+
+        .sidebar {
+            width: 245px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            padding: 28px 18px;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--blue);
+            letter-spacing: -1px;
+            padding: 0 12px;
+            margin-bottom: 45px;
+        }
+
+        .nav-label {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            padding: 0 12px;
+            margin-bottom: 14px;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 13px 14px;
+            margin-bottom: 7px;
+            border-radius: 9px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-item.active {
+            background: #1e3a60;
+            color: #82b5ff;
+            font-weight: 600;
+            border-left: 3px solid var(--blue);
+        }
+
+        .nav-item:hover {
+            background: var(--surface-hover);
+            color: var(--text);
+        }
+
+        .sidebar-footer {
+            margin-top: 45px;
+            padding: 15px 12px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        /* Main content */
+
+        .main {
+            flex: 1;
+            min-width: 0;
+            padding: 32px;
+        }
+
+        .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 15px;
             margin-bottom: 35px;
         }
 
-        h1 { margin: 0; color: #60a5fa; }
+        .page-title {
+            margin: 0;
+            font-size: 25px;
+            letter-spacing: -0.6px;
+        }
+
+        .page-subtitle {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 7px;
+        }
+
+        .refresh-button {
+            padding: 11px 17px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .refresh-button:hover {
+            background: var(--surface-hover);
+        }
+
+        /* Statistics */
 
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            transition: transform 0.2s ease, border-color 0.2s ease,
+                        box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: #42638b;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+        }
+
+        .stat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .stat-icon {
+            width: 37px;
+            height: 37px;
+            border-radius: 9px;
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+        }
+
+        .blue-icon { background: #1e3a60; color: var(--blue); }
+        .red-icon { background: #482331; color: var(--red); }
+        .yellow-icon { background: #44381c; color: var(--yellow); }
+        .green-icon { background: #153d35; color: var(--green); }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 750;
+            margin-top: 20px;
+            letter-spacing: -1px;
+        }
+
+        /* Section headings */
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 17px;
+            gap: 12px;
+        }
+
+        .section-header h2 {
+            font-size: 17px;
+            margin: 0;
+        }
+
+        .section-subtitle {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        /* Filters */
+
+        .filter-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
             margin-bottom: 30px;
         }
 
-        .card {
-            background: #1f2937;
-            padding: 22px;
-            border-radius: 10px;
-        }
-
-        .card h3 {
-            color: #9ca3af;
-            margin-top: 0;
-        }
-
-        .card p {
-            font-size: 30px;
-            font-weight: bold;
-            margin-bottom: 0;
-        }
-
         .filters {
-            display: flex;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto auto;
             gap: 12px;
-            margin-bottom: 20px;
         }
 
         input, select {
-            padding: 11px;
-            background: #1f2937;
-            color: white;
-            border: 1px solid #374151;
-            border-radius: 6px;
+            width: 100%;
+            padding: 12px 13px;
+            background: #0e192a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+            min-width: 0;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--blue);
+        }
+
+        input::placeholder {
+            color: #71839d;
         }
 
         button {
-            padding: 11px 18px;
+            font-family: inherit;
+        }
+
+        .search-button {
+            padding: 12px 20px;
             background: #2563eb;
-            color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
             cursor: pointer;
+        }
+
+        .search-button:hover {
+            background: #3478f6;
+        }
+
+        .clear-button {
+            padding: 12px 15px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .clear-button:hover {
+            background: var(--surface-hover);
+            color: white;
+        }
+
+        /* Log table */
+
+        .logs-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .logs-heading {
+            padding: 20px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logs-heading h2 {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .log-count {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background: #1f2937;
-            border-radius: 10px;
-            overflow: hidden;
+            min-width: 750px;
         }
 
-        th, td {
-            padding: 14px;
+        th {
             text-align: left;
-            border-bottom: 1px solid #374151;
+            padding: 15px 18px;
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            background: #142033;
+            white-space: nowrap;
         }
 
-        th { color: #9ca3af; }
+        td {
+            padding: 17px 18px;
+            border-top: 1px solid var(--border);
+            font-size: 13px;
+            color: #d6e0ef;
+        }
 
-        .ERROR { color: #f87171; }
-        .WARNING { color: #fbbf24; }
-        .INFO { color: #60a5fa; }
+        tbody tr:hover {
+            background: var(--surface-hover);
+        }
 
-        @media (max-width: 700px) {
-            .stats { grid-template-columns: 1fr; }
-            .filters { flex-wrap: wrap; }
-            table { font-size: 12px; }
-            body { padding: 15px; }
+        .event-id {
+            color: var(--blue);
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .level-badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: 0.4px;
+        }
+
+        .ERROR {
+            background: #482331;
+            color: var(--red);
+        }
+
+        .WARNING {
+            background: #44381c;
+            color: var(--yellow);
+        }
+
+        .INFO {
+            background: #1e3a60;
+            color: #82b5ff;
+        }
+
+        .DEBUG {
+            background: #293449;
+            color: #b4c1d3;
+        }
+
+        .CRITICAL {
+            background: #5b1d2b;
+            color: #ff8293;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 45px 20px !important;
+            color: var(--muted);
+        }
+
+        .timestamp {
+            color: var(--muted);
+            white-space: nowrap;
+            font-size: 12px;
+        }
+
+        /* Responsive */
+
+        @media (max-width: 1050px) {
+            .filters {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .stats {
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 750px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                padding: 22px 16px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                align-items: flex-start;
+            }
+
+            .page-title {
+                font-size: 21px;
+            }
         }
     </style>
 </head>
 
 <body>
 
-<header>
-    <h1>LogShift</h1>
-    <span>Log Explorer</span>
-</header>
+<div class="layout">
 
-<section class="stats">
-    <div class="card">
-        <h3>Total Logs</h3>
-        <p id="total-logs">-</p>
-    </div>
+    <!-- Sidebar -->
 
-    <div class="card">
-        <h3>Errors</h3>
-        <p id="error-count">-</p>
-    </div>
+    <aside class="sidebar">
+        <div class="brand">LogShift.</div>
 
-    <div class="card">
-        <h3>Warnings</h3>
-        <p id="warning-count">-</p>
-    </div>
-</section>
+        <div class="nav-label">WORKSPACE</div>
 
-<section class="filters">
-    <input id="search" placeholder="Search messages...">
+        <a href="/" class="nav-item active">▦ &nbsp; Overview</a>
+        <a href="#logs-section" class="nav-item">☷ &nbsp; Log Explorer</a>
 
-    <select id="level">
-        <option value="">All Levels</option>
-        <option value="DEBUG">DEBUG</option>
-        <option value="INFO">INFO</option>
-        <option value="WARNING">WARNING</option>
-        <option value="ERROR">ERROR</option>
-        <option value="CRITICAL">CRITICAL</option>
-    </select>
+        <div class="sidebar-footer">
+            <strong>LogShift</strong><br>
+            Log aggregation platform<br>
+            <span>DevOps Portfolio Project</span>
+        </div>
+    </aside>
 
-    <input id="service" placeholder="Service name">
+    <!-- Main dashboard -->
 
-    <button onclick="loadLogs()">Search</button>
-</section>
+    <main class="main">
 
-<h2>Recent Logs</h2>
+        <header class="topbar">
+            <div>
+                <h1 class="page-title">Overview</h1>
+                <div class="page-subtitle">
+                    Monitor and explore your application logs.
+                </div>
+            </div>
 
-<table>
-    <thead>
-        <tr>
-            <th>Event ID</th>
-            <th>Service</th>
-            <th>Level</th>
-            <th>Message</th>
-            <th>Timestamp</th>
-        </tr>
-    </thead>
+            <button class="refresh-button" onclick="refreshDashboard()">
+                ↻ &nbsp; Refresh
+            </button>
+        </header>
 
-    <tbody id="logs-table">
-        <tr><td colspan="5">Loading logs...</td></tr>
-    </tbody>
-</table>
+        <!-- KPI cards -->
+
+        <section class="stats">
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Total Logs</span>
+                    <div class="stat-icon blue-icon">▤</div>
+                </div>
+                <div class="stat-value" id="total-logs">-</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Errors</span>
+                    <div class="stat-icon red-icon">!</div>
+                </div>
+                <div class="stat-value" id="error-count">-</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Warnings</span>
+                    <div class="stat-icon yellow-icon">⚠</div>
+                </div>
+                <div class="stat-value" id="warning-count">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-top">
+                    <span class="stat-label">Services Monitored</span>
+                    <div class="stat-icon green-icon">⌘</div>
+                </div>
+                <div class="stat-value" id="service-count">-</div>
+            </div>
+        </section>
+
+        <!-- Search and filters -->
+
+        <section>
+            <div class="section-header">
+                <h2>Log Explorer</h2>
+                <span class="section-subtitle">Search and filter events</span>
+            </div>
+
+            <div class="filter-panel">
+                <div class="filters">
+
+                    <input
+                        id="search"
+                        placeholder="Search log messages..."
+                        aria-label="Search log messages"
+                    >
+
+                    <select id="level" aria-label="Filter by log level">
+                        <option value="">All Levels</option>
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                        <option value="CRITICAL">CRITICAL</option>
+                    </select>
+
+                    <input
+                        id="service"
+                        placeholder="Service name"
+                        aria-label="Filter by service"
+                    >
+
+                    <button class="search-button" onclick="loadLogs()">
+                        Search
+                    </button>
+
+                    <button class="clear-button" onclick="clearFilters()">
+                        Clear
+                    </button>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent logs -->
+
+        <section id="logs-section">
+
+            <div class="logs-panel">
+
+                <div class="logs-heading">
+                    <h2>Recent Logs</h2>
+                    <span class="log-count" id="log-count">Loading...</span>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Event ID</th>
+                                <th>Service</th>
+                                <th>Level</th>
+                                <th>Message</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="logs-table">
+                            <tr>
+                                <td colspan="5" class="empty-state">
+                                    Loading logs...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+</div>
 
 <script>
     async function loadStats() {
-        const response = await fetch("/api/v1/stats/");
-        const data = await response.json();
+        try {
+            const response = await fetch("/api/v1/stats/");
 
-        document.getElementById("total-logs").textContent = data.total_logs;
-        document.getElementById("error-count").textContent = data.error_count;
-        document.getElementById("warning-count").textContent = data.warning_count;
+            if (!response.ok) {
+                throw new Error("Unable to load statistics");
+            }
+
+            const data = await response.json();
+
+            document.getElementById("total-logs").textContent =
+                data.total_logs;
+
+            document.getElementById("error-count").textContent =
+                data.error_count;
+
+            document.getElementById("warning-count").textContent =
+                data.warning_count;
+
+            document.getElementById("service-count").textContent =
+                data.logs_by_service.length;
+
+        } catch (error) {
+            console.error("Stats error:", error);
+
+            document.getElementById("total-logs").textContent = "—";
+            document.getElementById("error-count").textContent = "—";
+            document.getElementById("warning-count").textContent = "—";
+            document.getElementById("service-count").textContent = "—";
+        }
     }
 
     async function loadLogs() {
+        const tbody = document.getElementById("logs-table");
+        const count = document.getElementById("log-count");
+
         const params = new URLSearchParams();
 
-        const search = document.getElementById("search").value;
+        const search = document.getElementById("search").value.trim();
         const level = document.getElementById("level").value;
-        const service = document.getElementById("service").value;
+        const service = document.getElementById("service").value.trim();
 
         if (search) params.set("search", search);
         if (level) params.set("level", level);
         if (service) params.set("service_name", service);
 
-        const response = await fetch(`/api/v1/logs/?${params}`);
-        const data = await response.json();
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-state">Loading logs...</td>
+            </tr>
+        `;
 
-        const tbody = document.getElementById("logs-table");
-        tbody.innerHTML = "";
+        try {
+            const response = await fetch(`/api/v1/logs/?${params}`);
 
-        data.results.forEach(log => {
-            const row = document.createElement("tr");
+            if (!response.ok) {
+                throw new Error("Unable to load logs");
+            }
 
-            [
-                log.event_id,
-                log.service_name,
-                log.level,
-                log.message,
-                new Date(log.timestamp).toLocaleString()
-            ].forEach((value, index) => {
-                const cell = document.createElement("td");
-                cell.textContent = value;
+            const data = await response.json();
 
-                if (index === 2) {
-                    cell.className = log.level;
-                }
+            tbody.innerHTML = "";
 
-                row.appendChild(cell);
+            count.textContent = `${data.results.length} entries`;
+
+            data.results.forEach(log => {
+                const row = document.createElement("tr");
+
+                const values = [
+                    log.event_id,
+                    log.service_name,
+                    log.level,
+                    log.message,
+                    new Date(log.timestamp).toLocaleString()
+                ];
+
+                values.forEach((value, index) => {
+                    const cell = document.createElement("td");
+
+                    cell.textContent = value ?? "";
+
+                    if (index === 0) {
+                        cell.className = "event-id";
+                    }
+
+                    if (index === 2) {
+                        const badge = document.createElement("span");
+                        badge.className = `level-badge ${log.level}`;
+                        badge.textContent = log.level;
+                        cell.appendChild(badge);
+                    }
+
+                    if (index === 4) {
+                        cell.className = "timestamp";
+                    }
+
+                    row.appendChild(cell);
+                });
+
+                tbody.appendChild(row);
             });
 
-            tbody.appendChild(row);
-        });
+            if (data.results.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            No logs found. Try adjusting your filters.
+                        </td>
+                    </tr>
+                `;
+            }
 
-        if (data.results.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5">No logs found.</td></tr>';
+        } catch (error) {
+            console.error("Logs error:", error);
+
+            count.textContent = "Unavailable";
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty-state">
+                        Unable to load logs. Please try again.
+                    </td>
+                </tr>
+            `;
         }
     }
 
-    loadStats();
-    loadLogs();
+    function clearFilters() {
+        document.getElementById("search").value = "";
+        document.getElementById("level").value = "";
+        document.getElementById("service").value = "";
+
+        loadLogs();
+    }
+
+    function refreshDashboard() {
+        loadStats();
+        loadLogs();
+    }
+
+    // Allow Enter to trigger search.
+
+    document.querySelectorAll("#search, #service").forEach(input => {
+        input.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                loadLogs();
+            }
+        });
+    });
+
+    // Initial dashboard load.
+
+    refreshDashboard();
 </script>
 
 </body>
