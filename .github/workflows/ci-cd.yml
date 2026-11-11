@@ -1,4 +1,3 @@
-
 name: LogShift CI/CD
 
 on:
@@ -89,3 +88,17 @@ jobs:
           docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $REGISTRY/$ECR_REPOSITORY:latest
 
+      - name: Deploy to EC2
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/logshift_deploy
+          chmod 600 ~/.ssh/logshift_deploy
+
+          ssh -o StrictHostKeyChecking=accept-new \
+            -i ~/.ssh/logshift_deploy \
+            ubuntu@$EC2_HOST \
+            'cd /home/ubuntu/LogShift && /bin/bash scripts/deploy.sh'
