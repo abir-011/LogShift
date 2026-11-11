@@ -88,17 +88,45 @@ jobs:
           docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $REGISTRY/$ECR_REPOSITORY:latest
 
+
       - name: Deploy to EC2
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+          AWS_REGION: ap-southeast-2
         run: |
+          set -Eeuo pipefail
+
+          RUNNER_IP=$(curl -fsS https://checkip.amazonaws.com | tr -d '\n')
+          RUNNER_CIDR="${RUNNER_IP}/32"
+
+          cleanup() {
+            echo "Removing temporary SSH access..."
+            aws ec2 revoke-security-group-ingress \
+              --group-id "$EC2_SECURITY_GROUP_ID" \
+              --protocol tcp \
+              --port 22 \
+              --cidr "$RUNNER_CIDR" \
+              --region "$AWS_REGION" || true
+          }
+          trap cleanup EXIT
+
+          echo "Temporarily allowing SSH from GitHub runner: $RUNNER_CIDR"
+
+          aws ec2 authorize-security-group-ingress \
+            --group-id "$EC2_SECURITY_GROUP_ID" \
+            --protocol tcp \
+            --port 22 \
+            --cidr "$RUNNER_CIDR" \
+            --region "$AWS_REGION"
+
           mkdir -p ~/.ssh
           echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/logshift_deploy
           chmod 600 ~/.ssh/logshift_deploy
 
           ssh -o StrictHostKeyChecking=accept-new \
             -i ~/.ssh/logshift_deploy \
-            ubuntu@$EC2_HOST \
+            ubuntu@"$EC2_HOST" \
             'cd /home/ubuntu/LogShift && /bin/bash scripts/deploy.sh'
