@@ -519,3 +519,79 @@ This project demonstrates practical experience with:
 ---
 
 **LogShift — Centralized logs. Clearer operations.**
+
+
+## CI/CD Pipeline
+
+LogShift uses GitHub Actions to automate testing and Docker image publishing, followed by automatic deployment on AWS EC2.
+
+### Pipeline Architecture
+
+```text
+Developer pushes code to GitHub (main)
+                |
+                v
+        GitHub Actions
+                |
+                v
+       Run Django Tests
+                |
+          Tests Pass?
+                |
+                v
+        Build Docker Image
+                |
+                v
+       Push Image to Amazon ECR
+         |              |
+      SHA Tag        latest Tag
+                |
+                v
+          AWS EC2 Instance
+                |
+                v
+       Cron-based Image Polling
+          (Every 5 Minutes)
+                |
+                v
+       Compare Running Image
+          with Latest SHA
+                |
+                v
+       Pull and Deploy New Image
+                |
+                v
+         Health Check
+          /       \
+       Pass       Fail
+        |           |
+     Success      Rollback
+```
+
+### Technologies Used
+
+- **GitHub Actions:** Runs automated tests and builds Docker images.
+- **Amazon ECR:** Stores versioned Docker images using Git commit SHA tags and a `latest` tag.
+- **Amazon EC2:** Hosts the containerized LogShift application and PostgreSQL database.
+- **Docker Compose:** Manages application and database containers.
+- **Bash:** Automates image detection, deployment, health checks, and rollback.
+- **Cron:** Checks ECR every five minutes for newly published images.
+
+### Deployment Strategy
+
+The pipeline uses a pull-based deployment strategy.
+
+1. A push to `main` triggers GitHub Actions.
+2. Django tests run against a PostgreSQL service.
+3. On successful tests, a Docker image is built and pushed to ECR.
+4. EC2 periodically checks ECR for the latest published image.
+5. If a new commit SHA is detected, EC2 pulls and deploys it.
+6. The deployment script verifies application health and attempts to restore the previous image if deployment fails.
+
+### Design Considerations
+
+- Pull-based deployment avoids exposing SSH access to external GitHub-hosted runners.
+- Deployment locking prevents overlapping deployment executions.
+- PostgreSQL is not recreated during application deployments, preserving database persistence.
+- SHA-based image tags provide traceability and make rollback possible.
+- Cron polling is a pragmatic alternative to event-driven deployment in the current AWS account environment.
