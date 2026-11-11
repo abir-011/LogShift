@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
@@ -53,6 +52,35 @@ CURRENT_IMAGE=$(docker inspect \
 
 CURRENT_TAG="${CURRENT_IMAGE##*:}"
 
+# Restore the previous image and verify its health
+rollback() {
+    echo "Restoring previous image: $CURRENT_TAG"
+
+    if ! docker image inspect "$ECR_REGISTRY/$ECR_REPOSITORY:$CURRENT_TAG" >/dev/null 2>&1; then
+        echo "ERROR: Previous image is unavailable locally."
+        return 1
+    fi
+
+    if ! IMAGE_TAG="$CURRENT_TAG" docker compose \
+        -f "$COMPOSE_FILE" up -d --no-deps web; then
+        echo "ERROR: Could not restore the previous image."
+        return 1
+    fi
+
+    for attempt in {1..12}; do
+        if curl -fsS "$HEALTH_URL" >/dev/null; then
+            echo "Rollback successful: $CURRENT_TAG"
+            return 0
+        fi
+
+        echo "Waiting for rollback health check ($attempt/12)..."
+        sleep 5
+    done
+
+    echo "ERROR: Previous image was restored, but health check failed."
+    return 1
+}
+
 if [[ "$LATEST_TAG" == "$CURRENT_TAG" ]]; then
     echo "Already running the latest image."
     exit 0
@@ -73,10 +101,7 @@ docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$LATEST_TAG"
 if ! IMAGE_TAG="$LATEST_TAG" docker compose \
     -f "$COMPOSE_FILE" up -d --no-deps web; then
     echo "ERROR: Deployment command failed. Rolling back..."
-
-    IMAGE_TAG="$CURRENT_TAG" docker compose \
-        -f "$COMPOSE_FILE" up -d --no-deps web
-
+    rollback || echo "CRITICAL: Rollback failed. Manual intervention required."
     exit 1
 fi
 
@@ -94,11 +119,6 @@ done
 # Roll back to the previous image
 echo "ERROR: Health check failed. Rolling back..."
 
-if docker image inspect "$ECR_REGISTRY/$ECR_REPOSITORY:$CURRENT_TAG" >/dev/null 2>&1; then
-    IMAGE_TAG="$CURRENT_TAG" docker compose \
-        -f "$COMPOSE_FILE" up -d --no-deps web
-else
-    echo "ERROR: Previous image is unavailable locally. Manual recovery required."
-fi
+rollback || echo "CRITICAL: Rollback failed. Manual intervention required."
 
 exit 1
