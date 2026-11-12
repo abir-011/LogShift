@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -147,6 +146,38 @@
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 18px;
             margin-bottom: 32px;
+        }
+
+        .charts {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+
+        .dashboard-filters {
+            margin-bottom: 22px;
+        }
+        .dashboard-filters .filters {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) auto auto;
+            align-items: center;
+        }
+
+        .dashboard-filters .filters button {
+            white-space: nowrap;
+        }
+        .chart-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            min-width: 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
         }
 
         .stat-card {
@@ -313,6 +344,23 @@
             font-size: 12px;
         }
 
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .pagination span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .table-wrapper {
             overflow-x: auto;
         }
@@ -433,6 +481,9 @@
             .page-title {
                 font-size: 21px;
             }
+            .charts {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -511,6 +562,80 @@
             </div>
         </section>
 
+
+        <!-- Global Dashboard Filters -->
+
+        <section class="filter-panel dashboard-filters">
+
+            <div class="filters">
+
+                <select id="time-range" aria-label="Time range">
+                    <option value="1h">Last 1 hour</option>
+                    <option value="24h" selected>Last 24 hours</option>
+                    <option value="7d">Last 7 days</option>
+                </select>
+
+                <select id="global-level" aria-label="Severity">
+                    <option value="">All Severities</option>
+                    <option value="ERROR">ERROR</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="INFO">INFO</option>
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                </select>
+
+                <select id="global-service" aria-label="Service">
+                    <option value="">All Services</option>
+                    <option value="auth-service">auth-service</option>
+                    <option value="order-service">order-service</option>
+                    <option value="payment-service">payment-service</option>
+                </select>
+
+                <select id="global-environment" aria-label="Environment">
+                    <option value="">All Environments</option>
+                    <option value="development">development</option>
+                    <option value="staging">staging</option>
+                    <option value="production">production</option>
+                </select>
+
+                <button class="search-button" onclick="applyDashboardFilters()">
+                    Apply Filters
+                </button>
+
+                <button class="clear-button" onclick="clearDashboardFilters()">
+                    Clear All
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- Analytics charts -->
+
+        <section class="charts">
+
+            <div class="chart-panel">
+                <div class="section-header">
+                    <h2>Log Volume Over Time</h2>
+                    <span class="section-subtitle" id="chart-time-label">Last 24 hours</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="volume-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-panel">
+                <div class="section-header">
+                    <h2>Logs by Severity</h2>
+                    <span class="section-subtitle">Distribution</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="severity-chart"></canvas>
+                </div>
+            </div>
+
+        </section>
+
         <!-- Search and filters -->
 
         <section>
@@ -537,11 +662,12 @@
                         <option value="CRITICAL">CRITICAL</option>
                     </select>
 
-                    <input
-                        id="service"
-                        placeholder="Service name"
-                        aria-label="Filter by service"
-                    >
+                    <select id="service" aria-label="Filter by service">
+                        <option value="">All Services</option>
+                        <option value="auth-service">auth-service</option>
+                        <option value="order-service">order-service</option>
+                        <option value="payment-service">payment-service</option>
+                    </select>
 
                     <button class="search-button" onclick="loadLogs()">
                         Search
@@ -587,7 +713,17 @@
                         </tbody>
                     </table>
                 </div>
-
+                <div class="pagination">
+                    <button id="previous-page" class="clear-button"
+                            onclick="loadLogs(currentLogPage - 1)" disabled>
+                        Previous
+                    </button>
+                    <span id="page-info">Page 1 of 1</span>
+                    <button id="next-page" class="clear-button"
+                            onclick="loadLogs(currentLogPage + 1)" disabled>
+                        Next
+                </button>
+                </div>
             </div>
 
         </section>
@@ -595,10 +731,177 @@
     </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
+    let volumeChart = null;
+    let currentLogPage = 1;
+    let totalLogPages = 1;
+    let severityChart = null;
+
+    function renderCharts(data) {
+        const timeRange = document.getElementById("time-range").value;
+        const timeLabels = {
+            "1h": "Last 1 hour",
+            "24h": "Last 24 hours",
+            "7d": "Last 7 days"
+        };
+
+        document.getElementById("chart-time-label").textContent =
+            timeLabels[timeRange];
+        const volumeLabels = data.logs_over_time.map(item =>
+            new Date(item.hour).toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit"
+            })
+        );
+
+        const volumeValues = data.logs_over_time.map(item => item.count);
+
+        if (volumeChart) {
+            volumeChart.destroy();
+        }
+
+        volumeChart = new Chart(
+            document.getElementById("volume-chart"),
+            {
+                type: "line",
+                data: {
+                    labels: volumeLabels,
+                    datasets: [{
+                        label: "Logs",
+                        data: volumeValues,
+                        borderColor: "#5798ff",
+                        backgroundColor: "rgba(87, 152, 255, 0.15)",
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: "#8fa1ba" },
+                            grid: { color: "rgba(143, 161, 186, 0.08)" }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: "#8fa1ba",
+                                precision: 0
+                            },
+                            grid: { color: "rgba(143, 161, 186, 0.08)" }
+                        }
+                    }
+                }
+            }
+        );
+
+        const severityLabels = data.logs_by_level.map(item => item.level);
+        const severityValues = data.logs_by_level.map(item => item.count);
+
+        if (severityChart) {
+            severityChart.destroy();
+        }
+
+        severityChart = new Chart(
+            document.getElementById("severity-chart"),
+            {
+                type: "doughnut",
+                data: {
+                    labels: severityLabels,
+                    datasets: [{
+                        data: severityValues,
+                        backgroundColor: [
+                            "#fb7185",
+                            "#5798ff",
+                            "#fbbf24",
+                            "#34d399",
+                            "#a78bfa"
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                color: "#e8eef8",
+                                padding: 18
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+    async function loadServices() {
+        try {
+            const response = await fetch("/api/v1/services/");
+
+            if (!response.ok) {
+                throw new Error("Unable to load services");
+            }
+
+            const data = await response.json();
+
+            const dropdowns = [
+                document.getElementById("global-service"),
+                document.getElementById("service")
+            ];
+
+            dropdowns.forEach(dropdown => {
+                const selectedValue = dropdown.value;
+
+                dropdown.innerHTML = '<option value="">All Services</option>';
+
+                data.services.forEach(service => {
+                    const option = document.createElement("option");
+                    option.value = service;
+                    option.textContent = service;
+                    dropdown.appendChild(option);
+                });
+
+                dropdown.value = selectedValue;
+            });
+
+        } catch (error) {
+            console.error("Service loading error:", error);
+        }
+    }
+    function applyDashboardFilters() {
+        loadStats();
+        loadLogs();
+    }
+
+    function clearDashboardFilters() {
+        document.getElementById("time-range").value = "24h";
+        document.getElementById("global-level").value = "";
+        document.getElementById("global-service").value = "";
+        document.getElementById("global-environment").value = "";
+
+        applyDashboardFilters();
+    }
+
     async function loadStats() {
         try {
-            const response = await fetch("/api/v1/stats/");
+            const params = new URLSearchParams({
+                time_range: document.getElementById("time-range").value,
+                level: document.getElementById("global-level").value,
+                service: document.getElementById("global-service").value,
+                environment: document.getElementById("global-environment").value
+            });
+
+            const response = await fetch(`/api/v1/stats/?${params.toString()}`);
 
             if (!response.ok) {
                 throw new Error("Unable to load statistics");
@@ -617,6 +920,7 @@
 
             document.getElementById("service-count").textContent =
                 data.logs_by_service.length;
+            renderCharts(data);
 
         } catch (error) {
             console.error("Stats error:", error);
@@ -628,19 +932,45 @@
         }
     }
 
-    async function loadLogs() {
+    async function loadLogs(page = 1) {
+        currentLogPage = page;
         const tbody = document.getElementById("logs-table");
         const count = document.getElementById("log-count");
 
         const params = new URLSearchParams();
+        params.set("page", currentLogPage);
+        params.set(
+            "start_time",
+            new Date(
+                Date.now() - {
+                    "1h": 60 * 60 * 1000,
+                    "24h": 24 * 60 * 60 * 1000,
+                    "7d": 7 * 24 * 60 * 60 * 1000
+                }[document.getElementById("time-range").value]
+            ).toISOString()
+        );
+
+        params.set("end_time", new Date().toISOString());
+
+        const globalLevel = document.getElementById("global-level").value;
+        const globalService = document.getElementById("global-service").value;
+        const globalEnvironment = document.getElementById("global-environment").value;
+
+        if (globalLevel) params.set("level", globalLevel);
+        if (globalService) params.set("service_name", globalService);
+        if (globalEnvironment) params.set("environment", globalEnvironment);
 
         const search = document.getElementById("search").value.trim();
         const level = document.getElementById("level").value;
         const service = document.getElementById("service").value.trim();
 
         if (search) params.set("search", search);
+
         if (level) params.set("level", level);
+        else if (globalLevel) params.set("level", globalLevel);
+
         if (service) params.set("service_name", service);
+        else if (globalService) params.set("service_name", globalService);
 
         tbody.innerHTML = `
             <tr>
@@ -654,12 +984,25 @@
             if (!response.ok) {
                 throw new Error("Unable to load logs");
             }
-
             const data = await response.json();
 
-            tbody.innerHTML = "";
+            totalLogPages = Math.max(1, Math.ceil(data.count / 10));
 
-            count.textContent = `${data.results.length} entries`;
+            document.getElementById("page-info").textContent =
+                `Page ${currentLogPage} of ${totalLogPages}`;
+
+            document.getElementById("previous-page").disabled = !data.previous;
+            document.getElementById("next-page").disabled = !data.next;
+
+            const startEntry = data.count === 0
+                ? 0
+                : (currentLogPage - 1) * 10 + 1;
+
+            const endEntry = (currentLogPage - 1) * 10 + data.results.length;
+
+            count.textContent = `Showing ${startEntry}–${endEntry} of ${data.count}`;
+
+            tbody.innerHTML = "";
 
             data.results.forEach(log => {
                 const row = document.createElement("tr");
@@ -748,7 +1091,14 @@
 
     // Initial dashboard load.
 
-    refreshDashboard();
+    // Initial dashboard load.
+
+    async function initializeDashboard() {
+        await loadServices();
+        refreshDashboard();
+    }
+
+    initializeDashboard();
 </script>
 
 </body>

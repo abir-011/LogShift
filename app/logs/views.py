@@ -9,7 +9,9 @@ from django.db import transaction
 from rest_framework import serializers
 from .models import LogEvent
 from django.db.models import Count
-
+from django.db.models.functions import TruncHour
+from django.utils import timezone
+from datetime import timedelta
 from .serializers import LogEventSerializer
 from rest_framework.pagination import PageNumberPagination
 
@@ -143,20 +145,82 @@ class LogDetailView(APIView):
 class LogStatsView(APIView):
 
     def get(self, request):
-        total_logs = LogEvent.objects.count()
+        now = timezone.now()
 
-        error_count = LogEvent.objects.filter(level="ERROR").count()
-        warning_count = LogEvent.objects.filter(level="WARNING").count()
+        time_range = request.query_params.get("time_range", "24h")
+        level = request.query_params.get("level")
+        service = request.query_params.get("service")
+        environment = request.query_params.get("environment")
+
+        time_ranges = {
+            "1h": timedelta(hours=1),
+            "24h": timedelta(hours=24),
+            "7d": timedelta(days=7),
+        }
+
+        if time_range not in time_ranges:
+            return Response(
+                {"error": "Invalid time_range. Use 1h, 24h, or 7d."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        start_time = now - time_ranges[time_range]
+
+        logs = LogEvent.objects.filter(
+            timestamp__gte=start_time,
+            timestamp__lte=now,
+        )
+
+        if level:
+            logs = logs.filter(level=level.upper())
+
+        if service:
+            logs = logs.filter(service_name=service)
+
+        if environment:
+            logs = logs.filter(environment=environment)
+
+        logs_over_time = (
+            logs
+            .annotate(hour=TruncHour("timestamp"))
+            .values("hour")
+            .annotate(count=Count("id"))
+            .order_by("hour")
+        )
+
+        hourly_counts = {
+            item["hour"].replace(minute=0, second=0, microsecond=0): item["count"]
+            for item in logs_over_time
+        }
+
+        first_hour = start_time.replace(
+            minute=0, second=0, microsecond=0
+        )
+
+        logs_over_time = [
+            {
+                "hour": (first_hour + timedelta(hours=i)).isoformat(),
+                "count": hourly_counts.get(
+                    first_hour + timedelta(hours=i), 0
+                ),
+            }
+            for i in range(int(time_ranges[time_range].total_seconds() // 3600) + 1)
+        ]
+
+        total_logs = logs.count()
+
+        error_count = logs.filter(level="ERROR").count()
+        warning_count = logs.filter(level="WARNING").count()
 
         logs_by_level = (
-            LogEvent.objects
+            logs
             .values("level")
             .annotate(count=Count("id"))
             .order_by("level")
         )
 
         logs_by_service = (
-            LogEvent.objects
+            logs
             .values("service_name")
             .annotate(count=Count("id"))
             .order_by("service_name")
@@ -168,4 +232,18 @@ class LogStatsView(APIView):
             "warning_count": warning_count,
             "logs_by_level": list(logs_by_level),
             "logs_by_service": list(logs_by_service),
+            "logs_over_time": logs_over_time,
         })
+
+
+class ServiceListView(APIView):
+
+    def get(self, request):
+        services = (
+            LogEvent.objects
+            .values_list("service_name", flat=True)
+            .distinct()
+            .order_by("service_name")
+        )
+
+        return Response({"services": list(services)})
