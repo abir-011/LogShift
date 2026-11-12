@@ -7,17 +7,36 @@
 
     <style>
         :root {
-            --bg: #0b1120;
-            --sidebar: #101a2c;
-            --surface: #172337;
-            --surface-hover: #1d2b42;
-            --border: #26364e;
-            --text: #e8eef8;
-            --muted: #8fa1ba;
-            --blue: #5798ff;
-            --green: #34d399;
-            --red: #fb7185;
-            --yellow: #fbbf24;
+            /* Operational Field Console: neutral mineral surfaces. */
+            --bg: #111514;
+            --sidebar: #161a1a;
+            --surface: #1b201f;
+            --surface-raised: #222827;
+            --surface-hover: #293130;
+            --input: #151a19;
+            --border: #394240;
+            --border-strong: #56615e;
+            --text: #edf0e9;
+            --muted: #9ca7a3;
+            --muted-strong: #cbd1ca;
+
+            /* Muted teal is reserved for interaction and active context. */
+            --accent: #70bdb4;
+            --accent-strong: #569e96;
+            --accent-soft: rgba(112, 189, 180, 0.14);
+
+            /* Semantic colours: severity and telemetry, not decoration. */
+            --blue: #88b7c8;
+            --green: #7eb49a;
+            --red: #e47b70;
+            --yellow: #d7aa4d;
+            --violet: #a993c7;
+
+            --shadow: 0 16px 36px rgba(5, 8, 8, 0.24);
+            --radius: 8px;
+            --radius-lg: 11px;
+            --ui-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+            --technical-font: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
         }
 
         * {
@@ -26,11 +45,12 @@
 
         body {
             margin: 0;
-            background: var(--bg);
+            background: linear-gradient(135deg, #141817 0%, var(--bg) 56%, #101312 100%);
             color: var(--text);
-            font-family: Inter, -apple-system, BlinkMacSystemFont,
-                         "Segoe UI", sans-serif;
+            font-family: var(--ui-font);
             min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.45;
         }
 
         .layout {
@@ -41,46 +61,127 @@
         /* Sidebar */
 
         .sidebar {
-            width: 245px;
+            width: 252px;
             background: var(--sidebar);
             border-right: 1px solid var(--border);
-            padding: 28px 18px;
+            padding: 26px 16px;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .brand {
-            font-size: 26px;
-            font-weight: 800;
-            color: var(--blue);
-            letter-spacing: -1px;
+            color: var(--text);
             padding: 0 12px;
-            margin-bottom: 45px;
+            margin-bottom: 30px;
+        }
+
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-mark {
+            display: flex;
+            align-items: end;
+            gap: 3px;
+            height: 28px;
+        }
+
+        .brand-mark span {
+            display: block;
+            width: 5px;
+            border-radius: 4px;
+            background: var(--accent);
+        }
+
+        .brand-mark span:nth-child(1) { height: 13px; opacity: 0.72; }
+        .brand-mark span:nth-child(2) { height: 22px; opacity: 0.86; }
+        .brand-mark span:nth-child(3) { height: 28px; }
+
+        .brand-name {
+            font-size: 22px;
+            font-weight: 720;
+            letter-spacing: -0.8px;
+        }
+
+        .brand-context {
+            display: block;
+            margin-top: 3px;
+            color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.75px;
+            text-transform: uppercase;
         }
 
         .nav-label {
-            color: #64748b;
-            font-size: 11px;
+            color: var(--muted);
+            font-size: 10px;
             font-weight: 700;
-            letter-spacing: 1.5px;
+            letter-spacing: 1.35px;
             padding: 0 12px;
             margin-bottom: 14px;
         }
 
+        .product-nav {
+            display: grid;
+            gap: 7px;
+        }
+
         .nav-item {
-            display: block;
-            padding: 13px 14px;
-            margin-bottom: 7px;
-            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-height: 58px;
+            padding: 10px 11px;
+            border: 1px solid transparent;
+            border-radius: 8px;
             color: var(--muted);
             text-decoration: none;
             font-size: 14px;
+            transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+        }
+
+        .nav-icon {
+            width: 20px;
+            color: var(--muted-strong);
+            font-size: 19px;
+            line-height: 1;
+            text-align: center;
+        }
+
+        .nav-copy {
+            min-width: 0;
+        }
+
+        .nav-title {
+            display: block;
+            color: inherit;
+            font-size: 14px;
+            font-weight: 650;
+        }
+
+        .nav-description {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.3;
         }
 
         .nav-item.active {
-            background: #1e3a60;
-            color: #82b5ff;
+            background: var(--accent-soft);
+            color: var(--text);
             font-weight: 600;
-            border-left: 3px solid var(--blue);
+            border-color: rgba(112, 189, 180, 0.38);
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--accent);
         }
 
         .nav-item:hover {
@@ -88,8 +189,35 @@
             color: var(--text);
         }
 
+        .nav-item:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .nav-item[aria-disabled="true"] {
+            cursor: not-allowed;
+            opacity: 0.58;
+        }
+
+        .nav-item[aria-disabled="true"]:hover {
+            background: transparent;
+            color: var(--muted);
+        }
+
+        .nav-status {
+            margin-left: auto;
+            padding: 3px 6px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--muted-strong);
+            font-family: var(--technical-font);
+            font-size: 9px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
         .sidebar-footer {
-            margin-top: 45px;
+            margin-top: auto;
             padding: 15px 12px;
             border-top: 1px solid var(--border);
             color: var(--muted);
@@ -97,12 +225,20 @@
             line-height: 1.8;
         }
 
+        .sidebar-footer strong {
+            color: var(--muted-strong);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            letter-spacing: 0.45px;
+            text-transform: uppercase;
+        }
+
         /* Main content */
 
         .main {
             flex: 1;
             min-width: 0;
-            padding: 32px;
+            padding: 30px 34px 42px;
         }
 
         .topbar {
@@ -110,33 +246,50 @@
             justify-content: space-between;
             align-items: center;
             gap: 15px;
-            margin-bottom: 35px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-eyebrow {
+            margin: 0 0 5px;
+            color: var(--accent);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         .page-title {
             margin: 0;
-            font-size: 25px;
-            letter-spacing: -0.6px;
+            font-size: 27px;
+            letter-spacing: -0.9px;
+            font-weight: 720;
         }
 
         .page-subtitle {
             color: var(--muted);
             font-size: 13px;
-            margin-top: 7px;
+            margin-top: 6px;
         }
 
         .refresh-button {
-            padding: 11px 17px;
-            background: var(--surface);
+            padding: 10px 14px;
+            background: transparent;
             border: 1px solid var(--border);
             border-radius: 8px;
             color: var(--text);
             cursor: pointer;
             font-size: 13px;
+            font-weight: 600;
+            font-family: var(--technical-font);
+            transition: background-color 0.16s ease, border-color 0.16s ease;
         }
 
         .refresh-button:hover {
             background: var(--surface-hover);
+            border-color: var(--border-strong);
         }
 
         /* Statistics */
@@ -144,55 +297,109 @@
         .stats {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 32px;
+            gap: 14px;
+            margin-bottom: 22px;
         }
 
         .charts {
             display: grid;
-            grid-template-columns: 1.5fr 1fr;
-            gap: 18px;
-            margin-bottom: 32px;
+            grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+            gap: 14px;
+            margin-bottom: 28px;
         }
 
         .dashboard-filters {
-            margin-bottom: 22px;
-        }
-        .dashboard-filters .filters {
-            grid-template-columns: repeat(4, minmax(0, 1fr)) auto auto;
-            align-items: center;
+            margin-bottom: 18px;
         }
 
-        .dashboard-filters .filters button {
-            white-space: nowrap;
+        .dashboard-filters .filters {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+        }
+
+        .filter-panel-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-panel-title {
+            color: var(--muted-strong);
+            font-family: var(--technical-font);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+        }
+
+        .filter-panel-note {
+            color: var(--muted);
+            font-size: 11px;
         }
         .chart-panel {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 22px;
+            border-radius: var(--radius-lg);
+            padding: 18px 20px 16px;
             min-width: 0;
+            box-shadow: var(--shadow);
         }
 
         .chart-container {
             position: relative;
-            height: 280px;
+            height: 286px;
             width: 100%;
         }
 
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 24px;
-            transition: transform 0.2s ease, border-color 0.2s ease,
-                        box-shadow 0.2s ease;
+        .chart-panel .section-header {
+            margin-bottom: 13px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
         }
 
+        .chart-panel .section-header h2 {
+            font-size: 15px;
+        }
+
+        .chart-panel .section-subtitle {
+            color: var(--muted-strong);
+        }
+
+        .stat-card {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            min-height: 156px;
+            padding: 18px;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease,
+                        box-shadow 0.2s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card::before {
+            position: absolute;
+            top: 0;
+            left: 18px;
+            width: 42px;
+            height: 2px;
+            content: "";
+            background: var(--card-accent, var(--accent));
+            opacity: 0.85;
+        }
+
+        .stat-card[data-tone="error"] { --card-accent: var(--red); }
+        .stat-card[data-tone="warning"] { --card-accent: var(--yellow); }
+        .stat-card[data-tone="service"] { --card-accent: var(--accent); }
+
         .stat-card:hover {
-            transform: translateY(-3px);
-            border-color: #42638b;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+            transform: translateY(-2px);
+            border-color: var(--border-strong);
+            box-shadow: 0 18px 32px rgba(2, 8, 23, 0.33);
         }
 
         .stat-top {
@@ -203,29 +410,40 @@
 
         .stat-label {
             color: var(--muted);
-            font-size: 13px;
-            font-weight: 600;
+            font-family: var(--technical-font);
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
         }
 
         .stat-icon {
-            width: 37px;
-            height: 37px;
-            border-radius: 9px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
             display: grid;
             place-items: center;
-            font-size: 18px;
+            font-size: 15px;
         }
 
-        .blue-icon { background: #1e3a60; color: var(--blue); }
-        .red-icon { background: #482331; color: var(--red); }
-        .yellow-icon { background: #44381c; color: var(--yellow); }
-        .green-icon { background: #153d35; color: var(--green); }
+        .blue-icon { background: rgba(136, 183, 200, 0.14); color: var(--blue); }
+        .red-icon { background: rgba(228, 123, 112, 0.14); color: var(--red); }
+        .yellow-icon { background: rgba(215, 170, 77, 0.14); color: var(--yellow); }
+        .green-icon { background: rgba(112, 189, 180, 0.14); color: var(--accent); }
 
         .stat-value {
-            font-size: 32px;
-            font-weight: 750;
-            margin-top: 20px;
-            letter-spacing: -1px;
+            font-size: 31px;
+            font-weight: 720;
+            margin-top: 21px;
+            letter-spacing: -0.8px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-context {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.35;
         }
 
         /* Section headings */
@@ -239,13 +457,15 @@
         }
 
         .section-header h2 {
-            font-size: 17px;
+            font-size: 16px;
             margin: 0;
+            font-weight: 680;
         }
 
         .section-subtitle {
             color: var(--muted);
-            font-size: 12px;
+            font-family: var(--technical-font);
+            font-size: 11px;
         }
 
         /* Filters */
@@ -253,35 +473,61 @@
         .filter-panel {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 26px;
+            box-shadow: var(--shadow);
         }
 
         .filters {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto auto;
-            gap: 12px;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 14px;
+            align-items: end;
+        }
+
+        .filter-field,
+        .filter-actions {
+            min-width: 0;
+        }
+
+        .control-label {
+            display: block;
+            margin: 0 0 6px 1px;
+            color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            font-weight: 650;
+            letter-spacing: 0.55px;
+            text-transform: uppercase;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
         }
 
         input, select {
             width: 100%;
-            padding: 12px 13px;
-            background: #0e192a;
+            padding: 10px 12px;
+            background: var(--input);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 6px;
             color: var(--text);
             font-size: 13px;
             outline: none;
             min-width: 0;
+            min-height: 40px;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease;
         }
 
-        input:focus, select:focus {
-            border-color: var(--blue);
+        input:focus-visible, select:focus-visible {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
         }
 
         input::placeholder {
-            color: #71839d;
+            color: var(--muted);
         }
 
         button {
@@ -289,71 +535,148 @@
         }
 
         .search-button {
-            padding: 12px 20px;
-            background: #2563eb;
+            padding: 10px 17px;
+            background: var(--accent-strong);
             border: none;
-            border-radius: 8px;
-            color: white;
+            border-radius: 6px;
+            color: #f7faf7;
             font-weight: 600;
             cursor: pointer;
+            min-height: 40px;
+            white-space: nowrap;
+            transition: background-color 0.16s ease, transform 0.16s ease;
         }
 
         .search-button:hover {
-            background: #3478f6;
+            background: var(--accent);
+            transform: translateY(-1px);
         }
 
         .clear-button {
-            padding: 12px 15px;
+            padding: 10px 14px;
             background: transparent;
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 6px;
             color: var(--muted);
             cursor: pointer;
+            min-height: 40px;
+            white-space: nowrap;
+            transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
         }
 
         .clear-button:hover {
             background: var(--surface-hover);
-            color: white;
+            border-color: var(--border-strong);
+            color: var(--text);
+        }
+
+        .search-button:focus-visible,
+        .clear-button:focus-visible,
+        .refresh-button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .search-button:active {
+            transform: translateY(0);
         }
 
         /* Log table */
 
+        .explorer-section-header {
+            align-items: end;
+            margin: 34px 0 14px;
+        }
+
+        .section-kicker,
+        .logs-kicker {
+            margin: 0 0 4px;
+            color: var(--accent);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .explorer-section-header h2 {
+            font-size: 20px;
+            letter-spacing: -0.35px;
+        }
+
         .logs-panel {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
             overflow: hidden;
+            box-shadow: var(--shadow);
         }
 
         .logs-heading {
-            padding: 20px 22px;
+            padding: 14px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 10px;
+            background: linear-gradient(90deg, rgba(112, 189, 180, 0.05), transparent 38%);
         }
 
         .logs-heading h2 {
-            font-size: 16px;
+            font-size: 17px;
             margin: 0;
+            font-weight: 680;
+        }
+
+        .logs-meta {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .logs-hint {
+            color: var(--muted);
+            font-size: 11px;
+            white-space: nowrap;
         }
 
         .log-count {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 3px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--input);
             color: var(--muted);
-            font-size: 12px;
+            font-family: var(--technical-font);
+            font-size: 10px;
+            white-space: nowrap;
         }
 
         .pagination {
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: 12px;
-            margin-top: 16px;
+            gap: 10px;
+            padding: 11px 18px;
+            margin-top: 0;
+            border-top: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.06);
         }
 
         .pagination span {
             color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 11px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .pagination .clear-button {
+            min-height: 32px;
+            padding: 6px 10px;
             font-size: 13px;
         }
 
@@ -361,99 +684,185 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .pagination button:disabled:hover {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--muted);
+        }
+
         .table-wrapper {
             overflow-x: auto;
+            overscroll-behavior-x: contain;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 750px;
+            table-layout: fixed;
+            min-width: 820px;
         }
 
         th {
             text-align: left;
-            padding: 15px 18px;
+            padding: 11px 18px;
             color: var(--muted);
-            font-size: 11px;
+            font-family: var(--technical-font);
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            background: #142033;
+            letter-spacing: 0.9px;
+            background: var(--surface-raised);
             white-space: nowrap;
         }
 
         td {
-            padding: 17px 18px;
+            padding: 12px 18px;
             border-top: 1px solid var(--border);
             font-size: 13px;
-            color: #d6e0ef;
+            color: var(--muted-strong);
+            line-height: 1.35;
+            vertical-align: middle;
         }
 
-        tbody tr:hover {
+        tbody tr {
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .clickable-row {
+            cursor: pointer;
+            outline: none;
+        }
+
+        .clickable-row:hover,
+        .clickable-row:focus-visible {
             background: var(--surface-hover);
+            box-shadow: inset 3px 0 0 rgba(112, 189, 180, 0.55);
+        }
+
+        .clickable-row.selected-log-row {
+            background: var(--accent-soft);
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .clickable-row.selected-log-row .event-id {
+            color: var(--accent);
         }
 
         .event-id {
             color: var(--blue);
-            font-family: monospace;
+            font-family: var(--technical-font);
             font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .log-service {
+            color: var(--text);
+            font-family: var(--technical-font);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .log-message {
+            overflow: hidden;
+            color: var(--text);
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .level-badge {
             display: inline-block;
-            padding: 5px 9px;
-            border-radius: 5px;
+            padding: 4px 7px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-family: var(--technical-font);
             font-size: 10px;
             font-weight: 750;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.5px;
         }
 
         .ERROR {
-            background: #482331;
+            background: rgba(228, 123, 112, 0.12);
             color: var(--red);
+            border-color: rgba(228, 123, 112, 0.28);
         }
 
         .WARNING {
-            background: #44381c;
+            background: rgba(215, 170, 77, 0.12);
             color: var(--yellow);
+            border-color: rgba(215, 170, 77, 0.28);
         }
 
         .INFO {
-            background: #1e3a60;
-            color: #82b5ff;
+            background: rgba(136, 183, 200, 0.12);
+            color: var(--blue);
+            border-color: rgba(136, 183, 200, 0.28);
         }
 
         .DEBUG {
-            background: #293449;
-            color: #b4c1d3;
+            background: rgba(156, 167, 163, 0.11);
+            color: var(--muted-strong);
+            border-color: rgba(156, 167, 163, 0.24);
         }
 
         .CRITICAL {
-            background: #5b1d2b;
-            color: #ff8293;
+            background: rgba(198, 94, 89, 0.2);
+            color: #ef948d;
+            border-color: rgba(198, 94, 89, 0.38);
         }
 
         .empty-state {
             text-align: center;
-            padding: 45px 20px !important;
+            padding: 42px 20px !important;
             color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 12px;
         }
 
         .timestamp {
             color: var(--muted);
             white-space: nowrap;
-            font-size: 12px;
+            font-family: var(--technical-font);
+            font-size: 11px;
+            font-variant-numeric: tabular-nums;
         }
 
         /* Responsive */
 
         @media (max-width: 1050px) {
+            .main {
+                padding: 26px;
+            }
+
             .filters {
                 grid-template-columns: 1fr 1fr;
             }
 
+            .dashboard-filters .filters {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .filter-actions {
+                grid-column: 1 / -1;
+            }
+
+            .filter-buttons {
+                justify-content: flex-end;
+            }
+
             .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 12px;
+            }
+        }
+
+        @media (max-width: 980px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 260px;
             }
         }
 
@@ -474,8 +883,32 @@
                 grid-template-columns: 1fr;
             }
 
+            .dashboard-filters .filters {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions {
+                grid-column: auto;
+            }
+
+            .filter-buttons {
+                justify-content: stretch;
+            }
+
+            .filter-buttons button {
+                flex: 1;
+            }
+
+            .filter-panel-heading {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
+
             .topbar {
                 align-items: flex-start;
+                flex-direction: column;
+                gap: 14px;
             }
 
             .page-title {
@@ -484,7 +917,228 @@
             .charts {
                 grid-template-columns: 1fr;
             }
+
+            .chart-container {
+                height: 250px;
+            }
+
+            .explorer-section-header {
+                align-items: flex-start;
+                margin-top: 28px;
+            }
+
+            .logs-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .logs-meta {
+                justify-content: space-between;
+                width: 100%;
+            }
+
+            .pagination {
+                justify-content: space-between;
+                gap: 6px;
+                padding: 10px 12px;
+            }
         }
+
+        @media (max-width: 420px) {
+            .main {
+                padding: 18px 12px 28px;
+            }
+
+            .filter-panel,
+            .chart-panel {
+                padding-right: 14px;
+                padding-left: 14px;
+            }
+
+            .chart-container {
+                height: 230px;
+            }
+
+            .logs-hint {
+                white-space: normal;
+            }
+        }
+        /* Event inspection drawer */
+
+        .log-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 9, 9, 0.58);
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+
+        .log-modal.hidden {
+            visibility: hidden;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .log-modal-content {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--surface-raised);
+            color: var(--text);
+            width: min(540px, 100%);
+            max-width: 100%;
+            overflow-y: auto;
+            border-left: 1px solid var(--border-strong);
+            box-shadow: -22px 0 54px rgba(0, 0, 0, 0.38);
+            transform: translateX(100%);
+            transition: transform 0.24s ease;
+        }
+
+        .log-modal:not(.hidden) .log-modal-content {
+            transform: translateX(0);
+        }
+
+        .log-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 20px 16px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(90deg, rgba(112, 189, 180, 0.08), transparent 72%);
+        }
+
+        .log-modal-header h2 {
+            margin: 2px 0 0;
+            font-size: 17px;
+        }
+
+        .drawer-kicker {
+            margin: 0;
+            color: var(--accent);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .drawer-close {
+            display: grid;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            place-items: center;
+            background: transparent;
+            color: var(--muted-strong);
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .drawer-close:hover {
+            border-color: var(--border-strong);
+            background: var(--surface-hover);
+            color: var(--text);
+        }
+
+        .drawer-close:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .log-event-summary {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-height: 48px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--input);
+        }
+
+        .drawer-event-id {
+            min-width: 0;
+            overflow: hidden;
+            color: var(--muted-strong);
+            font-family: var(--technical-font);
+            font-size: 12px;
+            font-weight: 600;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #log-details-content {
+            padding: 4px 20px 24px;
+        }
+
+        .log-detail-field {
+            display: grid;
+            grid-template-columns: minmax(112px, 0.75fr) minmax(0, 1.55fr);
+            gap: 14px;
+            padding: 13px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-detail-field:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .log-detail-field strong {
+            display: block;
+            padding-top: 2px;
+            color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .log-detail-field p {
+            margin: 0;
+            color: var(--muted-strong);
+            font-family: var(--technical-font);
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .log-detail-field.message-detail {
+            display: block;
+        }
+
+        .log-detail-field.message-detail strong {
+            margin-bottom: 8px;
+        }
+
+        .log-detail-field.message-detail p {
+            padding: 10px 11px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--input);
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 600px) {
+            .log-modal-content {
+                width: 100%;
+            }
+
+            .log-detail-field {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+
+            .log-detail-field strong {
+                padding-top: 0;
+            }
+        }
+
     </style>
 </head>
 
@@ -495,17 +1149,44 @@
     <!-- Sidebar -->
 
     <aside class="sidebar">
-        <div class="brand">LogShift.</div>
+        <div class="brand">
+            <div class="brand-lockup">
+                <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="brand-name">LogShift</span>
+            </div>
+            <span class="brand-context">Observability Console</span>
+        </div>
 
-        <div class="nav-label">WORKSPACE</div>
+        <div class="nav-label">PRODUCT</div>
 
-        <a href="/" class="nav-item active">▦ &nbsp; Overview</a>
-        <a href="#logs-section" class="nav-item">☷ &nbsp; Log Explorer</a>
+        <nav class="product-nav" aria-label="Product navigation">
+            <a href="/" class="nav-item active" data-nav="observe" aria-current="page">
+                <span class="nav-icon" aria-hidden="true">⌂</span>
+                <span class="nav-copy">
+                    <span class="nav-title">Observe</span>
+                    <span class="nav-description">System health &amp; activity</span>
+                </span>
+            </a>
+            <a href="#logs-section" class="nav-item" data-nav="investigate">
+                <span class="nav-icon" aria-hidden="true">⌕</span>
+                <span class="nav-copy">
+                    <span class="nav-title">Investigate</span>
+                    <span class="nav-description">Explore and analyse logs</span>
+                </span>
+            </a>
+            <div class="nav-item" aria-disabled="true">
+                <span class="nav-icon" aria-hidden="true">ϟ</span>
+                <span class="nav-copy">
+                    <span class="nav-title">Resolve</span>
+                    <span class="nav-description">Alerts, diagnostics &amp; actions</span>
+                </span>
+                <span class="nav-status">COMING SOON</span>
+            </div>
+        </nav>
 
         <div class="sidebar-footer">
             <strong>LogShift</strong><br>
-            Log aggregation platform<br>
-            <span>DevOps Portfolio Project</span>
+            Observe. Investigate. Resolve.
         </div>
     </aside>
 
@@ -515,9 +1196,10 @@
 
         <header class="topbar">
             <div>
-                <h1 class="page-title">Overview</h1>
+                <p class="page-eyebrow">Observe</p>
+                <h1 class="page-title">System Overview</h1>
                 <div class="page-subtitle">
-                    Monitor and explore your application logs.
+                    Log activity across the current selection.
                 </div>
             </div>
 
@@ -530,35 +1212,39 @@
 
         <section class="stats">
 
-            <div class="stat-card">
+            <div class="stat-card" data-tone="volume">
                 <div class="stat-top">
                     <span class="stat-label">Total Logs</span>
-                    <div class="stat-icon blue-icon">▤</div>
+                    <div class="stat-icon blue-icon" aria-hidden="true">▤</div>
                 </div>
                 <div class="stat-value" id="total-logs">-</div>
+                <p class="stat-context">Events in the selected window</p>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card" data-tone="error">
                 <div class="stat-top">
                     <span class="stat-label">Errors</span>
-                    <div class="stat-icon red-icon">!</div>
+                    <div class="stat-icon red-icon" aria-hidden="true">!</div>
                 </div>
                 <div class="stat-value" id="error-count">-</div>
+                <p class="stat-context">Error-level events</p>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card" data-tone="warning">
                 <div class="stat-top">
                     <span class="stat-label">Warnings</span>
-                    <div class="stat-icon yellow-icon">⚠</div>
+                    <div class="stat-icon yellow-icon" aria-hidden="true">⚠</div>
                 </div>
                 <div class="stat-value" id="warning-count">-</div>
+                <p class="stat-context">Warning-level events</p>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" data-tone="service">
                 <div class="stat-top">
                     <span class="stat-label">Services Monitored</span>
-                    <div class="stat-icon green-icon">⌘</div>
+                    <div class="stat-icon green-icon" aria-hidden="true">⌘</div>
                 </div>
                 <div class="stat-value" id="service-count">-</div>
+                <p class="stat-context">Services reporting in this scope</p>
             </div>
         </section>
 
@@ -566,45 +1252,66 @@
         <!-- Global Dashboard Filters -->
 
         <section class="filter-panel dashboard-filters">
+            <div class="filter-panel-heading">
+                <span class="filter-panel-title">Dashboard scope</span>
+                <span class="filter-panel-note">Applied to metrics and recent logs</span>
+            </div>
 
             <div class="filters">
 
-                <select id="time-range" aria-label="Time range">
-                    <option value="1h">Last 1 hour</option>
-                    <option value="24h" selected>Last 24 hours</option>
-                    <option value="7d">Last 7 days</option>
-                </select>
+                <div class="filter-field">
+                    <label class="control-label" for="time-range">Time range</label>
+                    <select id="time-range" aria-label="Time range">
+                        <option value="1h">Last 1 hour</option>
+                        <option value="24h" selected>Last 24 hours</option>
+                        <option value="7d">Last 7 days</option>
+                    </select>
+                </div>
 
-                <select id="global-level" aria-label="Severity">
-                    <option value="">All Severities</option>
-                    <option value="ERROR">ERROR</option>
-                    <option value="WARNING">WARNING</option>
-                    <option value="INFO">INFO</option>
-                    <option value="DEBUG">DEBUG</option>
-                    <option value="CRITICAL">CRITICAL</option>
-                </select>
+                <div class="filter-field">
+                    <label class="control-label" for="global-level">Severity</label>
+                    <select id="global-level" aria-label="Severity">
+                        <option value="">All Severities</option>
+                        <option value="ERROR">ERROR</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="INFO">INFO</option>
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="CRITICAL">CRITICAL</option>
+                    </select>
+                </div>
 
-                <select id="global-service" aria-label="Service">
-                    <option value="">All Services</option>
-                    <option value="auth-service">auth-service</option>
-                    <option value="order-service">order-service</option>
-                    <option value="payment-service">payment-service</option>
-                </select>
+                <div class="filter-field">
+                    <label class="control-label" for="global-service">Service</label>
+                    <select id="global-service" aria-label="Service">
+                        <option value="">All Services</option>
+                        <option value="auth-service">auth-service</option>
+                        <option value="order-service">order-service</option>
+                        <option value="payment-service">payment-service</option>
+                    </select>
+                </div>
 
-                <select id="global-environment" aria-label="Environment">
-                    <option value="">All Environments</option>
-                    <option value="development">development</option>
-                    <option value="staging">staging</option>
-                    <option value="production">production</option>
-                </select>
+                <div class="filter-field">
+                    <label class="control-label" for="global-environment">Environment</label>
+                    <select id="global-environment" aria-label="Environment">
+                        <option value="">All Environments</option>
+                        <option value="development">development</option>
+                        <option value="staging">staging</option>
+                        <option value="production">production</option>
+                    </select>
+                </div>
 
-                <button class="search-button" onclick="applyDashboardFilters()">
-                    Apply Filters
-                </button>
+                <div class="filter-actions">
+                    <span class="control-label">Actions</span>
+                    <div class="filter-buttons">
+                        <button class="search-button" onclick="applyDashboardFilters()">
+                            Apply Filters
+                        </button>
 
-                <button class="clear-button" onclick="clearDashboardFilters()">
-                    Clear All
-                </button>
+                        <button class="clear-button" onclick="clearDashboardFilters()">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
 
             </div>
 
@@ -639,43 +1346,60 @@
         <!-- Search and filters -->
 
         <section>
-            <div class="section-header">
-                <h2>Log Explorer</h2>
+            <div class="section-header explorer-section-header">
+                <div>
+                    <p class="section-kicker">Investigate</p>
+                    <h2>Log Explorer</h2>
+                </div>
                 <span class="section-subtitle">Search and filter events</span>
             </div>
 
             <div class="filter-panel">
                 <div class="filters">
 
-                    <input
-                        id="search"
-                        placeholder="Search log messages..."
-                        aria-label="Search log messages"
-                    >
+                    <div class="filter-field">
+                        <label class="control-label" for="search">Search logs</label>
+                        <input
+                            id="search"
+                            placeholder="Message text"
+                            aria-label="Search log messages"
+                        >
+                    </div>
 
-                    <select id="level" aria-label="Filter by log level">
-                        <option value="">All Levels</option>
-                        <option value="DEBUG">DEBUG</option>
-                        <option value="INFO">INFO</option>
-                        <option value="WARNING">WARNING</option>
-                        <option value="ERROR">ERROR</option>
-                        <option value="CRITICAL">CRITICAL</option>
-                    </select>
+                    <div class="filter-field">
+                        <label class="control-label" for="level">Severity</label>
+                        <select id="level" aria-label="Filter by log level">
+                            <option value="">All Levels</option>
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                        </select>
+                    </div>
 
-                    <select id="service" aria-label="Filter by service">
-                        <option value="">All Services</option>
-                        <option value="auth-service">auth-service</option>
-                        <option value="order-service">order-service</option>
-                        <option value="payment-service">payment-service</option>
-                    </select>
+                    <div class="filter-field">
+                        <label class="control-label" for="service">Service</label>
+                        <select id="service" aria-label="Filter by service">
+                            <option value="">All Services</option>
+                            <option value="auth-service">auth-service</option>
+                            <option value="order-service">order-service</option>
+                            <option value="payment-service">payment-service</option>
+                        </select>
+                    </div>
 
-                    <button class="search-button" onclick="loadLogs()">
-                        Search
-                    </button>
+                    <div class="filter-actions">
+                        <span class="control-label">Actions</span>
+                        <div class="filter-buttons">
+                            <button class="search-button" onclick="loadLogs()">
+                                Search
+                            </button>
 
-                    <button class="clear-button" onclick="clearFilters()">
-                        Clear
-                    </button>
+                            <button class="clear-button" onclick="clearFilters()">
+                                Clear
+                            </button>
+                        </div>
+                    </div>
 
                 </div>
             </div>
@@ -688,12 +1412,25 @@
             <div class="logs-panel">
 
                 <div class="logs-heading">
-                    <h2>Recent Logs</h2>
-                    <span class="log-count" id="log-count">Loading...</span>
+                    <div>
+                        <p class="logs-kicker">Event stream</p>
+                        <h2>Recent Logs</h2>
+                    </div>
+                    <div class="logs-meta">
+                        <span class="logs-hint">Select a row to inspect</span>
+                        <span class="log-count" id="log-count">Loading...</span>
+                    </div>
                 </div>
 
                 <div class="table-wrapper">
                     <table>
+                        <colgroup>
+                            <col style="width: 17%">
+                            <col style="width: 16%">
+                            <col style="width: 13%">
+                            <col style="width: 36%">
+                            <col style="width: 18%">
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>Event ID</th>
@@ -727,7 +1464,25 @@
             </div>
 
         </section>
+        <div id="log-details-modal" class="log-modal hidden" aria-hidden="true"
+            onclick="if (event.target === this) closeLogDetails()">
+            <aside class="log-modal-content" role="dialog" aria-modal="true"
+                aria-labelledby="log-details-title">
+                <div class="log-modal-header">
+                    <div>
+                        <p class="drawer-kicker">Event inspection</p>
+                        <h2 id="log-details-title">Log Details</h2>
+                    </div>
+                    <button type="button" onclick="closeLogDetails()" class="drawer-close"
+                        aria-label="Close event details">
+                        ×
+                    </button>
+                </div>
 
+                <div class="log-event-summary" id="log-event-summary"></div>
+                <div id="log-details-content"></div>
+            </aside>
+        </div>
     </main>
 </div>
 
@@ -757,6 +1512,17 @@
         );
 
         const volumeValues = data.logs_over_time.map(item => item.count);
+        const chartFont = "SFMono-Regular, Consolas, Liberation Mono, monospace";
+        const chartTooltip = {
+            backgroundColor: "#151a19",
+            titleColor: "#edf0e9",
+            bodyColor: "#cbd1ca",
+            borderColor: "#56615e",
+            borderWidth: 1,
+            padding: 10,
+            titleFont: { family: chartFont, size: 11, weight: "600" },
+            bodyFont: { family: chartFont, size: 11 }
+        };
 
         if (volumeChart) {
             volumeChart.destroy();
@@ -771,32 +1537,68 @@
                     datasets: [{
                         label: "Logs",
                         data: volumeValues,
-                        borderColor: "#5798ff",
-                        backgroundColor: "rgba(87, 152, 255, 0.15)",
+                        borderColor: "#70bdb4",
+                        backgroundColor: "rgba(112, 189, 180, 0.14)",
                         fill: true,
-                        tension: 0.35
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointHoverBackgroundColor: "#70bdb4",
+                        pointHoverBorderColor: "#151a19",
+                        pointHoverBorderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            ...chartTooltip,
+                            displayColors: false,
+                            callbacks: {
+                                label: context =>
+                                    `${context.parsed.y.toLocaleString()} logs`
+                            }
                         }
                     },
                     scales: {
                         x: {
-                            ticks: { color: "#8fa1ba" },
-                            grid: { color: "rgba(143, 161, 186, 0.08)" }
+                            border: { display: false },
+                            ticks: {
+                                color: "#9ca7a3",
+                                font: { family: chartFont, size: 10 },
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 8
+                            },
+                            grid: {
+                                color: "rgba(156, 167, 163, 0.1)",
+                                drawTicks: false
+                            }
                         },
                         y: {
                             beginAtZero: true,
+                            border: { display: false },
                             ticks: {
-                                color: "#8fa1ba",
-                                precision: 0
+                                color: "#9ca7a3",
+                                font: { family: chartFont, size: 10 },
+                                precision: 0,
+                                maxTicksLimit: 5,
+                                padding: 8,
+                                callback: value => Number(value).toLocaleString()
                             },
-                            grid: { color: "rgba(143, 161, 186, 0.08)" }
+                            grid: {
+                                color: "rgba(156, 167, 163, 0.1)",
+                                drawTicks: false
+                            }
                         }
                     }
                 }
@@ -805,6 +1607,16 @@
 
         const severityLabels = data.logs_by_level.map(item => item.level);
         const severityValues = data.logs_by_level.map(item => item.count);
+        const severityColors = {
+            CRITICAL: "#c65e59",
+            ERROR: "#e47b70",
+            WARNING: "#d7aa4d",
+            INFO: "#88b7c8",
+            DEBUG: "#9ca7a3"
+        };
+        const severityBackgroundColors = severityLabels.map(level =>
+            severityColors[level] || "#a993c7"
+        );
 
         if (severityChart) {
             severityChart.destroy();
@@ -818,25 +1630,38 @@
                     labels: severityLabels,
                     datasets: [{
                         data: severityValues,
-                        backgroundColor: [
-                            "#fb7185",
-                            "#5798ff",
-                            "#fbbf24",
-                            "#34d399",
-                            "#a78bfa"
-                        ],
-                        borderWidth: 0
+                        backgroundColor: severityBackgroundColors,
+                        borderColor: "#1b201f",
+                        borderWidth: 2,
+                        hoverBorderColor: "#56615e",
+                        hoverBorderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: "64%",
                     plugins: {
                         legend: {
                             position: "bottom",
                             labels: {
-                                color: "#e8eef8",
-                                padding: 18
+                                color: "#edf0e9",
+                                usePointStyle: true,
+                                pointStyle: "rectRounded",
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                padding: 14,
+                                font: { family: chartFont, size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            ...chartTooltip,
+                            displayColors: true,
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            callbacks: {
+                                label: context =>
+                                    ` ${context.label}: ${context.parsed.toLocaleString()} logs`
                             }
                         }
                     }
@@ -1006,6 +1831,29 @@
 
             data.results.forEach(log => {
                 const row = document.createElement("tr");
+                row.classList.add("clickable-row");
+                row.tabIndex = 0;
+                row.setAttribute("aria-label", `Inspect log ${log.event_id}`);
+
+                const selectLog = () => {
+                    document.querySelectorAll("#logs-table .selected-log-row")
+                        .forEach(selectedRow => {
+                            selectedRow.classList.remove("selected-log-row");
+                            selectedRow.removeAttribute("aria-selected");
+                        });
+
+                    row.classList.add("selected-log-row");
+                    row.setAttribute("aria-selected", "true");
+                    openLogDetails(log);
+                };
+
+                row.addEventListener("click", selectLog);
+                row.addEventListener("keydown", event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        selectLog();
+                    }
+                });
 
                 const values = [
                     log.event_id,
@@ -1024,6 +1872,10 @@
                         cell.className = "event-id";
                     }
 
+                    if (index === 1) {
+                        cell.className = "log-service";
+                    }
+
                     if (index === 2) {
                         const badge = document.createElement("span");
                         badge.className = `level-badge ${log.level}`;
@@ -1033,6 +1885,11 @@
 
                     if (index === 4) {
                         cell.className = "timestamp";
+                    }
+
+                    if (index === 3) {
+                        cell.className = "log-message";
+                        cell.title = value ?? "";
                     }
 
                     row.appendChild(cell);
@@ -1073,7 +1930,85 @@
 
         loadLogs();
     }
+    function openLogDetails(log) {
+        const modal = document.getElementById("log-details-modal");
+        const content = document.getElementById("log-details-content");
+        const summary = document.getElementById("log-event-summary");
 
+        const fields = {
+            "Event ID": log.event_id,
+            "Timestamp": log.timestamp
+                ? new Date(log.timestamp).toLocaleString()
+                : "",
+            "Severity": log.level,
+            "Service": log.service_name,
+            "Environment": log.environment,
+            "Message": log.message,
+            "Cloud Provider": log.cloud_provider,
+            "Log Source": log.log_source?.provider
+        };
+
+        content.innerHTML = "";
+        summary.innerHTML = "";
+
+        const severity = document.createElement("span");
+        severity.className = `level-badge ${log.level || "DEBUG"}`;
+        severity.textContent = log.level ?? "N/A";
+
+        const eventId = document.createElement("span");
+        eventId.className = "drawer-event-id";
+        eventId.textContent = log.event_id ?? "N/A";
+
+        summary.appendChild(severity);
+        summary.appendChild(eventId);
+
+        Object.entries(fields).forEach(([label, value]) => {
+            const section = document.createElement("div");
+            section.className = "log-detail-field";
+
+            if (label === "Message") {
+                section.classList.add("message-detail");
+            }
+
+            const heading = document.createElement("strong");
+            heading.textContent = label;
+
+            const text = label === "Severity"
+                ? document.createElement("span")
+                : document.createElement("p");
+
+            if (label === "Severity") {
+                text.className = `level-badge ${log.level || "DEBUG"}`;
+            }
+
+            text.textContent = value ?? "N/A";
+
+            section.appendChild(heading);
+            section.appendChild(text);
+            content.appendChild(section);
+        });
+
+        modal.classList.remove("hidden");
+        modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeLogDetails() {
+        const modal = document.getElementById("log-details-modal");
+
+        modal.classList.add("hidden");
+        modal.setAttribute("aria-hidden", "true");
+
+        document.querySelectorAll("#logs-table .selected-log-row")
+            .forEach(row => {
+                row.classList.remove("selected-log-row");
+                row.removeAttribute("aria-selected");
+            });
+    }
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            closeLogDetails();
+        }
+    });
     function refreshDashboard() {
         loadStats();
         loadLogs();
@@ -1089,7 +2024,25 @@
         });
     });
 
-    // Initial dashboard load.
+    function syncProductNavigation() {
+        const isInvestigating = window.location.hash === "#logs-section";
+
+        document.querySelectorAll(".nav-item[data-nav]").forEach(item => {
+            const isActive = item.dataset.nav ===
+                (isInvestigating ? "investigate" : "observe");
+
+            item.classList.toggle("active", isActive);
+
+            if (isActive) {
+                item.setAttribute("aria-current", "page");
+            } else {
+                item.removeAttribute("aria-current");
+            }
+        });
+    }
+
+    window.addEventListener("hashchange", syncProductNavigation);
+    syncProductNavigation();
 
     // Initial dashboard load.
 
