@@ -83,10 +83,24 @@ $AllowedHostsString = $AllowedHosts -join ','
 
 # 4. Update EC2 .env and recreate web container
 Write-Host "`nUpdating EC2 configuration..." -ForegroundColor Cyan
-
-$RemoteCommand = "grep -q '^ALLOWED_HOSTS=' $RemoteDir/.env && sed -i 's|^ALLOWED_HOSTS=.*|ALLOWED_HOSTS=$AllowedHostsString|' $RemoteDir/.env && cd $RemoteDir && docker compose -f docker-compose.prod.yml up -d --force-recreate web && docker compose -f docker-compose.prod.yml exec -T web printenv ALLOWED_HOSTS"
-
 $Target = "$SshUser@$PublicIp"
+$CurrentImage = & ssh -i $SshKey -o ConnectTimeout=15 $Target `
+    "docker inspect logshift-web --format '{{.Config.Image}}'"
+
+if ($LASTEXITCODE -ne 0 -or -not $CurrentImage) {
+    throw "Could not identify the currently deployed image."
+}
+
+$CurrentTag = ($CurrentImage.Trim() -split ':')[-1]
+
+if ($CurrentTag -notmatch '^[0-9a-f]{40}$') {
+    throw "Invalid deployed image tag. Refusing to use latest."
+}
+
+Write-Host "Preserving deployed version: $CurrentTag" -ForegroundColor Green
+
+$RemoteCommand = "grep -q '^ALLOWED_HOSTS=' $RemoteDir/.env && sed -i 's|^ALLOWED_HOSTS=.*|ALLOWED_HOSTS=$AllowedHostsString|' $RemoteDir/.env && cd $RemoteDir && IMAGE_TAG=$CurrentTag docker compose -f docker-compose.prod.yml up -d --force-recreate web && docker compose -f docker-compose.prod.yml exec -T web printenv ALLOWED_HOSTS"
+
 
 & ssh -i $SshKey -o ConnectTimeout=15 $Target $RemoteCommand
 
