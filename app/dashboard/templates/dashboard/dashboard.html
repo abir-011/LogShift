@@ -1124,6 +1124,24 @@
             white-space: pre-wrap;
         }
 
+        .log-detail-field.structured-detail {
+            display: block;
+        }
+
+        .log-detail-field.structured-detail strong {
+            margin-bottom: 8px;
+        }
+
+        .log-detail-field.structured-detail p {
+            padding: 10px 11px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--input);
+            font-size: 12px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+        }
+
         @media (max-width: 600px) {
             .log-modal-content {
                 width: 100%;
@@ -1493,6 +1511,7 @@
     let currentLogPage = 1;
     let totalLogPages = 1;
     let severityChart = null;
+    let activeLogEventId = null;
 
     function renderCharts(data) {
         const timeRange = document.getElementById("time-range").value;
@@ -1811,7 +1830,8 @@
             }
             const data = await response.json();
 
-            totalLogPages = Math.max(1, Math.ceil(data.count / 10));
+            const pageSize = data.page_size || 10;
+            totalLogPages = Math.max(1, Math.ceil(data.count / pageSize));
 
             document.getElementById("page-info").textContent =
                 `Page ${currentLogPage} of ${totalLogPages}`;
@@ -1821,9 +1841,9 @@
 
             const startEntry = data.count === 0
                 ? 0
-                : (currentLogPage - 1) * 10 + 1;
+                : (currentLogPage - 1) * pageSize + 1;
 
-            const endEntry = (currentLogPage - 1) * 10 + data.results.length;
+            const endEntry = (currentLogPage - 1) * pageSize + data.results.length;
 
             count.textContent = `Showing ${startEntry}–${endEntry} of ${data.count}`;
 
@@ -1930,23 +1950,60 @@
 
         loadLogs();
     }
-    function openLogDetails(log) {
+    function hasStructuredData(value) {
+        return value
+            && typeof value === "object"
+            && !Array.isArray(value)
+            && Object.keys(value).length > 0;
+    }
+
+    function withoutKeys(value, keys) {
+        if (!hasStructuredData(value)) {
+            return null;
+        }
+
+        const entries = Object.entries(value)
+            .filter(([key]) => !keys.includes(key));
+
+        return entries.length ? Object.fromEntries(entries) : null;
+    }
+
+    function appendDetailField(content, label, value, options = {}) {
+        const section = document.createElement("div");
+        section.className = "log-detail-field";
+
+        if (options.message) {
+            section.classList.add("message-detail");
+        }
+
+        if (options.structured) {
+            section.classList.add("structured-detail");
+        }
+
+        const heading = document.createElement("strong");
+        heading.textContent = label;
+
+        const text = options.severity
+            ? document.createElement("span")
+            : document.createElement("p");
+
+        if (options.severity) {
+            text.className = `level-badge ${options.level || "DEBUG"}`;
+        }
+
+        text.textContent = options.structured
+            ? JSON.stringify(value, null, 2)
+            : value ?? "N/A";
+
+        section.appendChild(heading);
+        section.appendChild(text);
+        content.appendChild(section);
+    }
+
+    function renderLogDetails(log) {
         const modal = document.getElementById("log-details-modal");
         const content = document.getElementById("log-details-content");
         const summary = document.getElementById("log-event-summary");
-
-        const fields = {
-            "Event ID": log.event_id,
-            "Timestamp": log.timestamp
-                ? new Date(log.timestamp).toLocaleString()
-                : "",
-            "Severity": log.level,
-            "Service": log.service_name,
-            "Environment": log.environment,
-            "Message": log.message,
-            "Cloud Provider": log.cloud_provider,
-            "Log Source": log.log_source?.provider
-        };
 
         content.innerHTML = "";
         summary.innerHTML = "";
@@ -1962,34 +2019,65 @@
         summary.appendChild(severity);
         summary.appendChild(eventId);
 
-        Object.entries(fields).forEach(([label, value]) => {
-            const section = document.createElement("div");
-            section.className = "log-detail-field";
-
-            if (label === "Message") {
-                section.classList.add("message-detail");
-            }
-
-            const heading = document.createElement("strong");
-            heading.textContent = label;
-
-            const text = label === "Severity"
-                ? document.createElement("span")
-                : document.createElement("p");
-
-            if (label === "Severity") {
-                text.className = `level-badge ${log.level || "DEBUG"}`;
-            }
-
-            text.textContent = value ?? "N/A";
-
-            section.appendChild(heading);
-            section.appendChild(text);
-            content.appendChild(section);
+        appendDetailField(content, "Event ID", log.event_id);
+        appendDetailField(
+            content,
+            "Timestamp",
+            log.timestamp ? new Date(log.timestamp).toLocaleString() : ""
+        );
+        appendDetailField(content, "Severity", log.level, {
+            severity: true,
+            level: log.level,
         });
+        appendDetailField(content, "Service", log.service_name);
+        appendDetailField(content, "Environment", log.environment);
+        appendDetailField(content, "Message", log.message, { message: true });
+        appendDetailField(content, "Cloud Provider", log.cloud?.provider);
+        appendDetailField(content, "Log Source", log.log_source?.provider);
+
+        const structuredFields = [
+            ["Performance", log.performance],
+            ["Correlation", log.correlation],
+            ["Attributes", log.attributes],
+            ["Exception", log.exception],
+            ["Log Source Metadata", withoutKeys(log.log_source, ["provider"])],
+            ["Cloud Metadata", withoutKeys(log.cloud, ["provider"])],
+        ];
+
+        structuredFields.forEach(([label, value]) => {
+            if (hasStructuredData(value)) {
+                appendDetailField(content, label, value, { structured: true });
+            }
+        });
+    }
+
+    async function openLogDetails(log) {
+        const modal = document.getElementById("log-details-modal");
+
+        activeLogEventId = log.event_id;
+        renderLogDetails(log);
 
         modal.classList.remove("hidden");
         modal.setAttribute("aria-hidden", "false");
+
+        try {
+            const response = await fetch(
+                `/api/v1/logs/${encodeURIComponent(log.event_id)}/`
+            );
+
+            if (!response.ok) {
+                throw new Error("Unable to load event details");
+            }
+
+            const detailedLog = await response.json();
+
+            if (activeLogEventId === detailedLog.event_id
+                && !modal.classList.contains("hidden")) {
+                renderLogDetails(detailedLog);
+            }
+        } catch (error) {
+            console.error("Event detail error:", error);
+        }
     }
 
     function closeLogDetails() {
@@ -1997,6 +2085,7 @@
 
         modal.classList.add("hidden");
         modal.setAttribute("aria-hidden", "true");
+        activeLogEventId = null;
 
         document.querySelectorAll("#logs-table .selected-log-row")
             .forEach(row => {

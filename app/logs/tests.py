@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -28,6 +28,16 @@ class LogIngestionTests(APITestCase):
             "exception": {},
             "raw": {}
         }
+
+    def create_log(self, **overrides):
+        payload = self.payload.copy()
+        payload.update(overrides)
+
+        response = self.client.post("/api/v1/logs/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        return response
 
     def test_create_log_successfully(self):
         response = self.client.post(
@@ -123,6 +133,174 @@ class LogIngestionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
 
+    def test_combined_log_filters(self):
+        self.create_log()
+        self.create_log(
+            event_id="evt-test-1003",
+            service_name="auth-service",
+            environment="production",
+            level="INFO",
+            message="Authentication succeeded",
+        )
+
+        response = self.client.get(
+            "/api/v1/logs/?service_name=payment-service&"
+            "environment=testing&level=ERROR"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(
+            response.data["results"][0]["event_id"], "evt-test-1001"
+        )
+
+    def test_environment_filter(self):
+        self.create_log()
+        self.create_log(
+            event_id="evt-test-1004",
+            environment="production",
+        )
+
+        response = self.client.get("/api/v1/logs/?environment=production")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+
+    def test_search_matches_supported_log_fields(self):
+        self.create_log(
+            event_id="evt-search-identifier",
+            service_name="search-service",
+            event_type="search_failure",
+            operation="index_document",
+            message="Index writer timeout",
+            message_template="Index writer failed for {document_id}",
+            correlation={
+                "trace_id": "trace-search-001",
+                "request_id": "request-search-001",
+                "span_id": "span-search-001",
+                "parent_span_id": "parent-search-001",
+            },
+        )
+
+        search_terms = [
+            "search",
+            "writer timeout",
+            "search-identifier",
+            "search-service",
+            "search_failure",
+            "index_document",
+            "document_id",
+            "trace-search-001",
+            "request-search-001",
+            "span-search-001",
+            "parent-search-001",
+        ]
+
+        for term in search_terms:
+            with self.subTest(term=term):
+                response = self.client.get("/api/v1/logs/", {"search": term})
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(response.data["count"], 1)
+
+    def test_query_validation_rejects_invalid_timestamps(self):
+        for parameter in ("start_time", "end_time"):
+            with self.subTest(parameter=parameter):
+                response = self.client.get(
+                    "/api/v1/logs/", {parameter: "not-a-timestamp"}
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(parameter, response.data)
+
+    def test_query_validation_rejects_naive_timestamps(self):
+        for parameter in ("start_time", "end_time"):
+            with self.subTest(parameter=parameter):
+                response = self.client.get(
+                    "/api/v1/logs/", {parameter: "2026-11-12T10:00:00"}
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(parameter, response.data)
+
+    def test_query_validation_accepts_timezone_aware_timestamps(self):
+        self.create_log(timestamp="2026-11-12T12:00:00+05:30")
+
+        response = self.client.get(
+            "/api/v1/logs/",
+            {
+                "start_time": "2026-11-12T06:00:00Z",
+                "end_time": "2026-11-12T07:00:00Z",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+
+    def test_query_validation_rejects_reversed_timestamps(self):
+        response = self.client.get(
+            "/api/v1/logs/",
+            {
+                "start_time": "2026-11-13T00:00:00Z",
+                "end_time": "2026-11-12T00:00:00Z",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("non_field_errors", response.data)
+
+    def test_query_validation_rejects_invalid_severity_and_pagination(self):
+        invalid_level = self.client.get("/api/v1/logs/", {"level": "NOTICE"})
+        invalid_page = self.client.get("/api/v1/logs/", {"page": 0})
+        invalid_small_page_size = self.client.get(
+            "/api/v1/logs/", {"page_size": 0}
+        )
+        invalid_large_page_size = self.client.get(
+            "/api/v1/logs/", {"page_size": 101}
+        )
+
+        self.assertEqual(invalid_level.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(invalid_page.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            invalid_small_page_size.status_code, status.HTTP_400_BAD_REQUEST
+        )
+        self.assertEqual(
+            invalid_large_page_size.status_code, status.HTTP_400_BAD_REQUEST
+        )
+
+    def test_query_validation_preserves_case_insensitive_severity_filter(self):
+        self.create_log()
+
+        response = self.client.get("/api/v1/logs/", {"level": "error"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+
+    def test_custom_page_size_is_reported_in_paginated_response(self):
+        for number in range(6):
+            LogEvent.objects.create(
+                event_id=f"evt-page-{number}",
+                timestamp=datetime.now(timezone.utc) + timedelta(seconds=number),
+                service_name="payment-service",
+                environment="testing",
+                level="INFO",
+                message=f"Pagination event {number}",
+            )
+
+        response = self.client.get("/api/v1/logs/", {"page_size": 5})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 6)
+        self.assertEqual(response.data["page_size"], 5)
+        self.assertEqual(len(response.data["results"]), 5)
+
+    def test_out_of_range_page_returns_not_found(self):
+        self.create_log()
+
+        response = self.client.get("/api/v1/logs/", {"page": 2})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_retrieve_individual_log(self):
         self.client.post(
             "/api/v1/logs/",
@@ -136,6 +314,29 @@ class LogIngestionTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["event_id"], "evt-test-1001")
+
+    def test_event_detail_handles_empty_structured_fields(self):
+        LogEvent.objects.create(
+            event_id="evt-empty-structured",
+            timestamp=datetime.now(timezone.utc),
+            service_name="payment-service",
+            environment="testing",
+            level="INFO",
+            message="Minimal structured event",
+            cloud={},
+            log_source={},
+            performance={},
+            correlation={},
+            attributes={},
+            exception={},
+            raw={},
+        )
+
+        response = self.client.get("/api/v1/logs/evt-empty-structured/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["cloud"], {})
+        self.assertEqual(response.data["log_source"], {})
 
     def test_retrieve_missing_log_returns_404(self):
         response = self.client.get(

@@ -1,18 +1,14 @@
-from urllib import request
-
-from django.contrib.postgres import search
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import IntegrityError
 from django.db import transaction
-from rest_framework import serializers
+from django.db.models import Count, Q
 from .models import LogEvent
-from django.db.models import Count
 from django.db.models.functions import TruncHour
 from django.utils import timezone
 from datetime import timedelta
-from .serializers import LogEventSerializer
+from .serializers import LogEventSerializer, LogQuerySerializer
 from rest_framework.pagination import PageNumberPagination
 
 
@@ -20,6 +16,15 @@ class LogPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "page_size"
     max_page_size = 100
+
+    def get_paginated_response(self, data):
+        return Response({
+            "count": self.page.paginator.count,
+            "next": self.get_next_link(),
+            "previous": self.get_previous_link(),
+            "page_size": self.get_page_size(self.request),
+            "results": data,
+        })
 
 
 class LogIngestView(APIView):
@@ -53,29 +58,37 @@ class LogIngestView(APIView):
     def get(self, request):
         logs = LogEvent.objects.all()
 
-        service_name = request.query_params.get("service_name")
-        level = request.query_params.get("level")
-        environment = request.query_params.get("environment")
-        search = request.query_params.get("search")
-        start_time = request.query_params.get("start_time")
-        end_time = request.query_params.get("end_time")
+        query_serializer = LogQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        params = query_serializer.validated_data
 
-        if service_name:
+        if service_name := params.get("service_name"):
             logs = logs.filter(service_name=service_name)
 
-        if level:
-            logs = logs.filter(level=level.upper())
+        if level := params.get("level"):
+            logs = logs.filter(level=level)
 
-        if environment:
+        if environment := params.get("environment"):
             logs = logs.filter(environment=environment)
 
-        if search:
-            logs = logs.filter(message__icontains=search)
+        if search := params.get("search"):
+            logs = logs.filter(
+                Q(message__icontains=search)
+                | Q(event_id__icontains=search)
+                | Q(service_name__icontains=search)
+                | Q(event_type__icontains=search)
+                | Q(operation__icontains=search)
+                | Q(message_template__icontains=search)
+                | Q(correlation__trace_id__icontains=search)
+                | Q(correlation__request_id__icontains=search)
+                | Q(correlation__span_id__icontains=search)
+                | Q(correlation__parent_span_id__icontains=search)
+            )
 
-        if start_time:
+        if start_time := params.get("start_time"):
             logs = logs.filter(timestamp__gte=start_time)
 
-        if end_time:
+        if end_time := params.get("end_time"):
             logs = logs.filter(timestamp__lte=end_time)
 
         paginator = LogPagination()
