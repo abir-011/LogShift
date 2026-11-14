@@ -97,6 +97,18 @@ trap 'docker logout "$ECR_REGISTRY" >/dev/null 2>&1 || true' EXIT
 # Pull the new image
 docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$LATEST_TAG"
 
+# Run database migrations using the new image.
+echo "Running Django database migrations..."
+
+if ! IMAGE_TAG="$LATEST_TAG" docker compose \
+    -f "$COMPOSE_FILE" run --rm --no-deps web \
+    python manage.py migrate --noinput; then
+    echo "ERROR: Database migration failed. Deployment aborted."
+    exit 1
+fi
+
+echo "Database migrations completed successfully."
+
 # Deploy without touching PostgreSQL
 if ! IMAGE_TAG="$LATEST_TAG" docker compose \
     -f "$COMPOSE_FILE" up -d --no-deps web; then
