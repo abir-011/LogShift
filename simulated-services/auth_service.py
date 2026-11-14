@@ -1,4 +1,4 @@
-
+import os
 import json
 import uuid
 import random
@@ -6,8 +6,17 @@ from datetime import datetime, timezone
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-LOGSHIFT_URL = "http://localhost:8000/api/v1/logs/"
+LOGSHIFT_URL = os.getenv(
+    "LOGSHIFT_URL",
+    "http://localhost:8000/api/v1/logs/"
+)
 
+LOGSHIFT_API_KEY = os.getenv("LOGSHIFT_INGEST_API_KEY")
+
+if not LOGSHIFT_API_KEY:
+    raise RuntimeError(
+        "LOGSHIFT_INGEST_API_KEY environment variable is not set."
+    )
 
 def generate_log(level, event_type, message, exception=None):
     return {
@@ -45,7 +54,10 @@ def send_log(log):
     request = Request(
         LOGSHIFT_URL,
         data=json.dumps(log).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "X-API-Key": LOGSHIFT_API_KEY
+        },
         method="POST"
     )
 

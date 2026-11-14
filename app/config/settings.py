@@ -131,3 +131,22 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Authentication redirects
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/login/"
+
+# Log ingestion API authentication
+LOGSHIFT_INGEST_API_KEY = os.environ.get("LOGSHIFT_INGEST_API_KEY", "")
+
+# Django REST Framework configuration
+REST_FRAMEWORK = {
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "log_ingest": "60/min",
+        "log_batch": "10/min",
+    },
+}

@@ -10,7 +10,9 @@ from django.utils import timezone
 from datetime import timedelta
 from .serializers import LogEventSerializer, LogQuerySerializer
 from rest_framework.pagination import PageNumberPagination
-
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .authentication import LogShiftAPIKeyAuthentication
 
 class LogPagination(PageNumberPagination):
     page_size = 10
@@ -28,6 +30,18 @@ class LogPagination(PageNumberPagination):
 
 
 class LogIngestView(APIView):
+    throttle_scope = "log_ingest"
+    def get_authenticators(self):
+        if self.request.method == "POST":
+            return [LogShiftAPIKeyAuthentication()]
+
+        return [SessionAuthentication()]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [AllowAny()]
+
+        return [IsAuthenticated()]
 
     def post(self, request):
         serializer = LogEventSerializer(data=request.data)
@@ -100,6 +114,9 @@ class LogIngestView(APIView):
 
 
 class BatchLogIngestView(APIView):
+    authentication_classes = [LogShiftAPIKeyAuthentication]
+    permission_classes = [AllowAny]
+    throttle_scope = "log_batch"
 
     def post(self, request):
         logs = request.data.get("logs")
@@ -139,6 +156,8 @@ class BatchLogIngestView(APIView):
 
 
 class LogDetailView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, event_id):
         try:
@@ -156,6 +175,8 @@ class LogDetailView(APIView):
 
 
 class LogStatsView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         now = timezone.now()
@@ -250,6 +271,8 @@ class LogStatsView(APIView):
 
 
 class ServiceListView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         services = (

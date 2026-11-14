@@ -68,6 +68,38 @@
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
+
+            /* Keep sidebar visible while dashboard scrolls */
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+
+        .logout-form {
+            margin-top: auto;
+            margin-bottom: 12px;
+            padding-top: 20px;
+        }
+
+        .logout-button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font: inherit;
+            font-size: 14px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            background: var(--surface);
+            color: var(--text);
         }
 
         .brand {
@@ -217,7 +249,7 @@
         }
 
         .sidebar-footer {
-            margin-top: auto;
+            margin-top: 0;
             padding: 15px 12px;
             border-top: 1px solid var(--border);
             color: var(--muted);
@@ -1201,6 +1233,14 @@
                 <span class="nav-status">COMING SOON</span>
             </div>
         </nav>
+
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="logout-button">
+                <span aria-hidden="true">↪</span>
+                <span>Logout</span>
+            </button>
+        </form>
 
         <div class="sidebar-footer">
             <strong>LogShift</strong><br>
