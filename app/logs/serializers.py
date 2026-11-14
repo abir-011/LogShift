@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from .models import LogEvent
+from .models import LogEvent, Service
 
 
 class TimezoneAwareDateTimeField(serializers.DateTimeField):
@@ -115,3 +115,36 @@ class LogEventSerializer(serializers.ModelSerializer):
             )
 
         return value
+
+    def create(self, validated_data):
+        log_event = super().create(validated_data)
+
+        Service.objects.filter(
+            service_name=log_event.service_name,
+            environment=log_event.environment,
+        ).update(
+            last_activity=timezone.now()
+        )
+
+        return log_event
+
+
+class HeartbeatSerializer(serializers.Serializer):
+
+    service_name = serializers.CharField(
+        max_length=150,
+        trim_whitespace=True,
+    )
+
+    environment = serializers.CharField(
+        max_length=50,
+        trim_whitespace=True,
+    )
+
+    service_version = serializers.CharField(
+        max_length=50,
+        required=False,
+        allow_blank=True,
+        default="",
+        trim_whitespace=True,
+    )

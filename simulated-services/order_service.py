@@ -5,6 +5,8 @@ import random
 from datetime import datetime, timezone
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
+from heartbeat import send_heartbeat
+import time
 
 LOGSHIFT_URL = os.getenv(
     "LOGSHIFT_URL",
@@ -72,6 +74,9 @@ def send_log(log):
     except URLError as error:
         print(f"[CONNECTION ERROR] {error.reason}")
 
+    except OSError as error:
+        print(f"[CONNECTION ERROR] {error}")
+
 
 def run_order_service():
     events = [
@@ -98,6 +103,18 @@ def run_order_service():
 
     for event in events:
         send_log(event)
+    try:
+        while True:
+            send_heartbeat(
+                service_name="order-service",
+                environment="development",
+                service_version="1.0.0",
+            )
+
+            time.sleep(30)
+
+    except KeyboardInterrupt:
+        print("[SERVICE] order-service stopped.")
 
 
 if __name__ == "__main__":

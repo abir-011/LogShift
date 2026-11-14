@@ -4,11 +4,15 @@ from rest_framework.views import APIView
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Count, Q
-from .models import LogEvent
+from .models import LogEvent, Service
 from django.db.models.functions import TruncHour
 from django.utils import timezone
 from datetime import timedelta
-from .serializers import LogEventSerializer, LogQuerySerializer
+from .serializers import (
+    LogEventSerializer,
+    LogQuerySerializer,
+    HeartbeatSerializer,
+)
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -275,11 +279,47 @@ class ServiceListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        services = (
-            LogEvent.objects
-            .values_list("service_name", flat=True)
-            .distinct()
-            .order_by("service_name")
+        services = Service.objects.all()
+
+        service_data = [
+            {
+                "service_name": service.service_name,
+                "environment": service.environment,
+                "service_version": service.service_version,
+                "status": service.status,
+                "last_heartbeat": service.last_heartbeat,
+                "last_activity": service.last_activity,
+            }
+            for service in services
+        ]
+
+        return Response({"services": service_data})
+
+class ServiceHeartbeatView(APIView):
+    authentication_classes = [LogShiftAPIKeyAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = HeartbeatSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+
+        service, created = Service.objects.update_or_create(
+            service_name=data["service_name"],
+            environment=data["environment"],
+            defaults={
+                "service_version": data["service_version"],
+                "last_heartbeat": timezone.now(),
+            },
         )
 
-        return Response({"services": list(services)})
+        return Response(
+            {
+                "message": "Heartbeat received successfully.",
+                "service_name": service.service_name,
+                "environment": service.environment,
+                "created": created,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )

@@ -6,6 +6,7 @@ from .views import (
     LogDetailView,
     LogStatsView,
     ServiceListView,
+    ServiceHeartbeatView,
 )
 
 urlpatterns = [
@@ -14,4 +15,9 @@ urlpatterns = [
     path("logs/<str:event_id>/", LogDetailView.as_view(), name="log-detail"),
     path("stats/", LogStatsView.as_view(), name="log-stats"),
     path("services/", ServiceListView.as_view(), name="service-list"),
+    path(
+        "services/heartbeat/",
+        ServiceHeartbeatView.as_view(),
+        name="service-heartbeat",
+        ),
 ]

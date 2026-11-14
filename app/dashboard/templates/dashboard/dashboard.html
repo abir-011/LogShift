@@ -477,6 +477,84 @@
             font-size: 11px;
             line-height: 1.35;
         }
+        /* Service Health Monitoring */
+
+        .service-health-section {
+            margin: 24px 0;
+        }
+
+        .service-health-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+        }
+
+        .service-health-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .service-health-card:hover {
+            border-color: var(--border-strong);
+        }
+
+        .service-health-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .service-health-name {
+            font-size: 14px;
+            font-weight: 650;
+            color: var(--text);
+        }
+
+        .health-status {
+            font-size: 11px;
+            font-weight: 650;
+            padding: 4px 9px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .health-status.healthy {
+            color: var(--green);
+            background: rgba(126, 180, 154, 0.13);
+        }
+
+        .health-status.degraded {
+            color: var(--yellow);
+            background: rgba(215, 170, 77, 0.13);
+        }
+
+        .health-status.down {
+            color: var(--red);
+            background: rgba(228, 123, 112, 0.13);
+        }
+
+        .service-health-details {
+            display: grid;
+            gap: 6px;
+            color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 11px;
+        }
+
+        .service-health-empty {
+            color: var(--muted);
+            font-size: 13px;
+            padding: 20px;
+            text-align: center;
+            background: var(--surface);
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-lg);
+        }
 
         /* Section headings */
 
@@ -1401,6 +1479,29 @@
 
         </section>
 
+        <!-- Service Health Monitoring -->
+
+        <section class="service-health-section">
+
+            <div class="section-header">
+                <div>
+                    <p class="section-kicker">Observe</p>
+                    <h2>Service Health</h2>
+                </div>
+
+                <span class="section-subtitle" id="service-health-summary">
+                    Loading service status...
+                </span>
+            </div>
+
+            <div class="service-health-grid" id="service-health-grid">
+                <div class="service-health-empty">
+                    Loading monitored services...
+                </div>
+            </div>
+
+        </section>
+
         <!-- Search and filters -->
 
         <section>
@@ -1737,7 +1838,9 @@
             }
 
             const data = await response.json();
+            const services = data.services || [];
 
+            // Update existing service filter dropdowns.
             const dropdowns = [
                 document.getElementById("global-service"),
                 document.getElementById("service")
@@ -1748,20 +1851,101 @@
 
                 dropdown.innerHTML = '<option value="">All Services</option>';
 
-                data.services.forEach(service => {
+                services.forEach(service => {
                     const option = document.createElement("option");
-                    option.value = service;
-                    option.textContent = service;
+                    option.value = service.service_name;
+                    option.textContent = service.service_name;
                     dropdown.appendChild(option);
                 });
 
                 dropdown.value = selectedValue;
             });
 
+            // Update Service Health panel.
+            renderServiceHealth(services);
+
         } catch (error) {
             console.error("Service loading error:", error);
+
+            document.getElementById("service-health-summary").textContent =
+                "Unable to load service status";
+
+            document.getElementById("service-health-grid").textContent =
+                "Service information is currently unavailable.";
         }
     }
+
+
+    function renderServiceHealth(services) {
+        const grid = document.getElementById("service-health-grid");
+        const summary = document.getElementById("service-health-summary");
+
+        grid.innerHTML = "";
+
+        if (services.length === 0) {
+            summary.textContent = "No services registered";
+
+            grid.textContent = "No monitored services found.";
+            return;
+        }
+
+        const counts = {
+            Healthy: 0,
+            Degraded: 0,
+            Down: 0
+        };
+
+        services.forEach(service => {
+            if (Object.hasOwn(counts, service.status)) {
+                counts[service.status]++;
+            }
+        });
+
+        summary.textContent =
+            `${counts.Healthy} Healthy · ${counts.Degraded} Degraded · ${counts.Down} Down`;
+
+        services.forEach(service => {
+            const card = document.createElement("div");
+            card.className = "service-health-card";
+
+            const top = document.createElement("div");
+            top.className = "service-health-top";
+
+            const name = document.createElement("span");
+            name.className = "service-health-name";
+            name.textContent = service.service_name;
+
+            const status = document.createElement("span");
+            status.className =
+                `health-status ${service.status.toLowerCase()}`;
+            status.textContent = service.status;
+
+            top.append(name, status);
+
+            const details = document.createElement("div");
+            details.className = "service-health-details";
+
+            const formatTimestamp = value =>
+                value ? new Date(value).toLocaleString() : "Not recorded";
+
+            const detailLines = [
+                `Environment: ${service.environment}`,
+                `Version: ${service.service_version || "Not specified"}`,
+                `Last heartbeat: ${formatTimestamp(service.last_heartbeat)}`,
+                `Last activity: ${formatTimestamp(service.last_activity)}`
+            ];
+
+            detailLines.forEach(line => {
+                const detail = document.createElement("div");
+                detail.textContent = line;
+                details.appendChild(detail);
+            });
+
+            card.append(top, details);
+            grid.appendChild(card);
+        });
+    }
+
     function applyDashboardFilters() {
         loadStats();
         loadLogs();
@@ -2139,6 +2323,7 @@
         }
     });
     function refreshDashboard() {
+        loadServices();
         loadStats();
         loadLogs();
     }
@@ -2175,9 +2360,11 @@
 
     // Initial dashboard load.
 
-    async function initializeDashboard() {
-        await loadServices();
+    function initializeDashboard() {
         refreshDashboard();
+
+        // Refresh service health every 15 seconds.
+        setInterval(loadServices, 15000);
     }
 
     initializeDashboard();
