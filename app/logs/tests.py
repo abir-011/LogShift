@@ -1,14 +1,25 @@
 from datetime import datetime, timedelta, timezone
 
+from django.contrib.auth import get_user_model
+from django.test import override_settings
+
 from rest_framework.test import APITestCase
 from rest_framework import status
 
 from .models import LogEvent
 
 
+@override_settings(LOGSHIFT_INGEST_API_KEY="test-ingest-key")
 class LogIngestionTests(APITestCase):
 
     def setUp(self):
+
+        self.user = get_user_model().objects.create_user(
+            username="testuser",
+            password="test-password",
+        )
+        self.client.force_login(self.user)
+        self.client.credentials(HTTP_X_API_KEY="test-ingest-key")
         self.payload = {
             "event_id": "evt-test-1001",
             "timestamp": datetime.now(timezone.utc).isoformat(),
