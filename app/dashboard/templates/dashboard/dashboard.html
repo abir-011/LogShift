@@ -401,6 +401,7 @@
         }
 
         .stat-card {
+            cursor: pointer;
             position: relative;
             background: var(--surface);
             border: 1px solid var(--border);
@@ -432,6 +433,11 @@
             transform: translateY(-2px);
             border-color: var(--border-strong);
             box-shadow: 0 18px 32px rgba(2, 8, 23, 0.33);
+        }
+
+        .stat-card:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
         }
 
         .stat-top {
@@ -1453,7 +1459,10 @@
 
         <section class="stats">
 
-            <div class="stat-card" data-tone="volume">
+            <div class="stat-card" data-tone="volume"
+                role="button" tabindex="0"
+                onclick="handleKpiClick('all')"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleKpiClick('all')}">
                 <div class="stat-top">
                     <span class="stat-label">Total Logs</span>
                     <div class="stat-icon blue-icon" aria-hidden="true">▤</div>
@@ -1462,7 +1471,10 @@
                 <p class="stat-context">Events in the selected window</p>
             </div>
 
-            <div class="stat-card" data-tone="error">
+             <div class="stat-card" data-tone="error"
+                role="button" tabindex="0"
+                onclick="handleKpiClick('errors')"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleKpiClick('errors')}">
                 <div class="stat-top">
                     <span class="stat-label">Errors</span>
                     <div class="stat-icon red-icon" aria-hidden="true">!</div>
@@ -1471,7 +1483,10 @@
                 <p class="stat-context">Error-level events</p>
             </div>
 
-            <div class="stat-card" data-tone="warning">
+            <div class="stat-card" data-tone="warning"
+                role="button" tabindex="0"
+                onclick="handleKpiClick('warnings')"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleKpiClick('warnings')}">
                 <div class="stat-top">
                     <span class="stat-label">Warnings</span>
                     <div class="stat-icon yellow-icon" aria-hidden="true">⚠</div>
@@ -1479,7 +1494,10 @@
                 <div class="stat-value" id="warning-count">-</div>
                 <p class="stat-context">Warning-level events</p>
             </div>
-            <div class="stat-card" data-tone="service">
+             <div class="stat-card" data-tone="service"
+                role="button" tabindex="0"
+                onclick="handleKpiClick('services')"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleKpiClick('services')}">
                 <div class="stat-top">
                     <span class="stat-label">Services Monitored</span>
                     <div class="stat-icon green-icon" aria-hidden="true">⌘</div>
@@ -2414,6 +2432,44 @@
 
         loadLogs();
     }
+
+    function handleKpiClick(type) {
+        const logsSection = document.getElementById("logs-section");
+        const serviceHealthSection = document.querySelector(
+            ".service-health-section"
+        );
+
+        if (type === "services") {
+            serviceHealthSection.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+            return;
+        }
+
+        // Reset the Log Explorer's individual filters.
+        document.getElementById("level").value = "";
+        document.getElementById("service").value = "";
+
+        // Apply the requested severity to both filter levels.
+        const severity = type === "errors"
+            ? "ERROR"
+            : type === "warnings"
+                ? "WARNING"
+                : "";
+
+        document.getElementById("global-level").value = severity;
+        document.getElementById("level").value = severity;
+
+        // Start from the first page with the new filters.
+        loadLogs(1);
+
+        logsSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+
     function hasStructuredData(value) {
         return value
             && typeof value === "object"
