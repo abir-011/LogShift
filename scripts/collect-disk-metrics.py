@@ -25,7 +25,7 @@ def collect_disk_metrics():
 
     total = usage.total
     used = usage.used
-    available = usage.free
+    available = total - used
 
     usage_percent = round((used / total) * 100, 2)
 
