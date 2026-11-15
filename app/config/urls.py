@@ -17,7 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
-from dashboard.views import health_check, dashboard_home
+from dashboard.views import (
+    health_check,
+    dashboard_home,
+    InfrastructureMetricIngestView,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -30,4 +34,9 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("", dashboard_home, name="dashboard-home"),
+    path(
+        "api/v1/infrastructure/metrics/",
+        InfrastructureMetricIngestView.as_view(),
+        name="infrastructure-metric-ingest",
+    ),
 ]

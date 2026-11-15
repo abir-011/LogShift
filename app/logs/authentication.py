@@ -31,3 +31,29 @@ class LogShiftAPIKeyAuthentication(BaseAuthentication):
 
     def authenticate_header(self, request):
         return "X-API-Key"
+
+class MonitoringAPIKeyAuthentication(BaseAuthentication):
+    """
+    Authenticate infrastructure metric collectors.
+    """
+
+    def authenticate(self, request):
+        provided_key = request.headers.get("X-API-Key")
+
+        if not provided_key:
+            raise AuthenticationFailed("Monitoring API key is required.")
+
+        expected_key = settings.LOGSHIFT_MONITORING_API_KEY
+
+        if not expected_key:
+            raise AuthenticationFailed(
+                "Monitoring API key authentication is not configured."
+            )
+
+        if not secrets.compare_digest(provided_key, expected_key):
+            raise AuthenticationFailed("Invalid monitoring API key.")
+
+        return (None, provided_key)
+
+    def authenticate_header(self, request):
+        return "X-API-Key"

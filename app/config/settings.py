@@ -16,6 +16,18 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load the repository-level .env file for local development.
+ENV_FILE = BASE_DIR.parent / ".env"
+
+if ENV_FILE.exists():
+    with ENV_FILE.open(encoding="utf-8") as env_file:
+        for line in env_file:
+            line = line.strip()
+
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                os.environ.setdefault(key.strip(), value.strip())
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -139,6 +151,11 @@ LOGOUT_REDIRECT_URL = "/login/"
 
 # Log ingestion API authentication
 LOGSHIFT_INGEST_API_KEY = os.environ.get("LOGSHIFT_INGEST_API_KEY", "")
+
+# Infrastructure monitoring API authentication
+LOGSHIFT_MONITORING_API_KEY = os.environ.get(
+    "LOGSHIFT_MONITORING_API_KEY", ""
+)
 
 # Django REST Framework configuration
 REST_FRAMEWORK = {
