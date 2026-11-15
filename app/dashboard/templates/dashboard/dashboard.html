@@ -1267,6 +1267,103 @@
             }
         }
 
+        /* Infrastructure Monitoring */
+
+        .infrastructure-section {
+            margin: 24px 0;
+        }
+
+        .infrastructure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .infrastructure-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11px;
+            font-weight: 650;
+            color: var(--green);
+        }
+
+        .infrastructure-status.warning {
+            color: var(--yellow);
+        }
+
+        .infrastructure-status.critical {
+            color: var(--red);
+        }
+
+        .disk-usage-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .disk-usage-track {
+            height: 10px;
+            margin-top: 16px;
+            overflow: hidden;
+            background: var(--border);
+            border-radius: 20px;
+        }
+
+        .disk-usage-fill {
+            height: 100%;
+            width: 0;
+            background: var(--accent);
+            border-radius: 20px;
+            transition: width 0.4s ease;
+        }
+
+        .disk-usage-fill.warning {
+            background: var(--yellow);
+        }
+
+        .disk-usage-fill.critical {
+            background: var(--red);
+        }
+
+        .disk-threshold-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .infrastructure-chart-panel {
+            margin-top: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .infrastructure-chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        @media (max-width: 600px) {
+            .infrastructure-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .disk-usage-panel,
+            .infrastructure-chart-panel {
+                padding: 15px;
+            }
+
+            .infrastructure-chart-container {
+                height: 220px;
+            }
+        }
     </style>
 </head>
 
@@ -1293,6 +1390,14 @@
                 <span class="nav-copy">
                     <span class="nav-title">Observe</span>
                     <span class="nav-description">System health &amp; activity</span>
+                </span>
+            </a>
+
+            <a href="/infrastructure/" class="nav-item" data-nav="infrastructure">
+                <span class="nav-icon" aria-hidden="true">▤</span>
+                <span class="nav-copy">
+                    <span class="nav-title">Infrastructure</span>
+                    <span class="nav-description">Monitor infrastructure resources</span>
                 </span>
             </a>
             <a href="#logs-section" class="nav-item" data-nav="investigate">
@@ -1654,6 +1759,7 @@
     let severityChart = null;
     let activeLogEventId = null;
 
+
     function renderCharts(data) {
         const timeRange = document.getElementById("time-range").value;
         const timeLabels = {
@@ -1664,6 +1770,7 @@
 
         document.getElementById("chart-time-label").textContent =
             timeLabels[timeRange];
+
         const volumeLabels = data.logs_over_time.map(item =>
             new Date(item.hour).toLocaleTimeString("en-IN", {
                 hour: "2-digit",
@@ -1673,6 +1780,7 @@
 
         const volumeValues = data.logs_over_time.map(item => item.count);
         const chartFont = "SFMono-Regular, Consolas, Liberation Mono, monospace";
+
         const chartTooltip = {
             backgroundColor: "#151a19",
             titleColor: "#edf0e9",
@@ -1684,89 +1792,99 @@
             bodyFont: { family: chartFont, size: 11 }
         };
 
-        if (volumeChart) {
-            volumeChart.destroy();
-        }
-
-        volumeChart = new Chart(
-            document.getElementById("volume-chart"),
-            {
-                type: "line",
-                data: {
-                    labels: volumeLabels,
-                    datasets: [{
-                        label: "Logs",
-                        data: volumeValues,
-                        borderColor: "#70bdb4",
-                        backgroundColor: "rgba(112, 189, 180, 0.14)",
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        pointHoverRadius: 4,
-                        pointHoverBackgroundColor: "#70bdb4",
-                        pointHoverBorderColor: "#151a19",
-                        pointHoverBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: "index",
-                        intersect: false
+        // Create the volume chart once; update its data afterwards.
+        if (!volumeChart) {
+            volumeChart = new Chart(
+                document.getElementById("volume-chart"),
+                {
+                    type: "line",
+                    data: {
+                        labels: volumeLabels,
+                        datasets: [{
+                            label: "Logs",
+                            data: volumeValues,
+                            borderColor: "#70bdb4",
+                            backgroundColor: "rgba(112, 189, 180, 0.14)",
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: "#70bdb4",
+                            pointHoverBorderColor: "#151a19",
+                            pointHoverBorderWidth: 2
+                        }]
                     },
-                    plugins: {
-                        legend: {
-                            display: false
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: "index",
+                            intersect: false
                         },
-                        tooltip: {
-                            ...chartTooltip,
-                            displayColors: false,
-                            callbacks: {
-                                label: context =>
-                                    `${context.parsed.y.toLocaleString()} logs`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            border: { display: false },
-                            ticks: {
-                                color: "#9ca7a3",
-                                font: { family: chartFont, size: 10 },
-                                maxRotation: 0,
-                                autoSkip: true,
-                                maxTicksLimit: 8
+                        plugins: {
+                            legend: {
+                                display: false
                             },
-                            grid: {
-                                color: "rgba(156, 167, 163, 0.1)",
-                                drawTicks: false
+                            tooltip: {
+                                ...chartTooltip,
+                                displayColors: false,
+                                callbacks: {
+                                    label: context =>
+                                        `${context.parsed.y.toLocaleString()} logs`
+                                }
                             }
                         },
-                        y: {
-                            beginAtZero: true,
-                            border: { display: false },
-                            ticks: {
-                                color: "#9ca7a3",
-                                font: { family: chartFont, size: 10 },
-                                precision: 0,
-                                maxTicksLimit: 5,
-                                padding: 8,
-                                callback: value => Number(value).toLocaleString()
+                        scales: {
+                            x: {
+                                border: { display: false },
+                                ticks: {
+                                    color: "#9ca7a3",
+                                    font: { family: chartFont, size: 10 },
+                                    maxRotation: 0,
+                                    autoSkip: true,
+                                    maxTicksLimit: 8
+                                },
+                                grid: {
+                                    color: "rgba(156, 167, 163, 0.1)",
+                                    drawTicks: false
+                                }
                             },
-                            grid: {
-                                color: "rgba(156, 167, 163, 0.1)",
-                                drawTicks: false
+                            y: {
+                                beginAtZero: true,
+                                border: { display: false },
+                                ticks: {
+                                    color: "#9ca7a3",
+                                    font: { family: chartFont, size: 10 },
+                                    precision: 0,
+                                    maxTicksLimit: 5,
+                                    padding: 8,
+                                    callback: value => Number(value).toLocaleString()
+                                },
+                                grid: {
+                                    color: "rgba(156, 167, 163, 0.1)",
+                                    drawTicks: false
+                                }
                             }
                         }
                     }
                 }
+            );
+        } else {
+            const volumeDataChanged =
+                JSON.stringify(volumeChart.data.labels) !== JSON.stringify(volumeLabels) ||
+                JSON.stringify(volumeChart.data.datasets[0].data) !== JSON.stringify(volumeValues);
+
+            if (volumeDataChanged) {
+                volumeChart.data.labels = volumeLabels;
+                volumeChart.data.datasets[0].data = volumeValues;
+                volumeChart.update("none");
             }
-        );
+        }
 
         const severityLabels = data.logs_by_level.map(item => item.level);
         const severityValues = data.logs_by_level.map(item => item.count);
+
         const severityColors = {
             CRITICAL: "#c65e59",
             ERROR: "#e47b70",
@@ -1774,61 +1892,73 @@
             INFO: "#88b7c8",
             DEBUG: "#9ca7a3"
         };
+
         const severityBackgroundColors = severityLabels.map(level =>
             severityColors[level] || "#a993c7"
         );
 
-        if (severityChart) {
-            severityChart.destroy();
-        }
-
-        severityChart = new Chart(
-            document.getElementById("severity-chart"),
-            {
-                type: "doughnut",
-                data: {
-                    labels: severityLabels,
-                    datasets: [{
-                        data: severityValues,
-                        backgroundColor: severityBackgroundColors,
-                        borderColor: "#1b201f",
-                        borderWidth: 2,
-                        hoverBorderColor: "#56615e",
-                        hoverBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: "64%",
-                    plugins: {
-                        legend: {
-                            position: "bottom",
-                            labels: {
-                                color: "#edf0e9",
-                                usePointStyle: true,
-                                pointStyle: "rectRounded",
-                                boxWidth: 10,
-                                boxHeight: 10,
-                                padding: 14,
-                                font: { family: chartFont, size: 10 }
-                            }
-                        },
-                        tooltip: {
-                            ...chartTooltip,
-                            displayColors: true,
-                            boxWidth: 8,
-                            boxHeight: 8,
-                            callbacks: {
-                                label: context =>
-                                    ` ${context.label}: ${context.parsed.toLocaleString()} logs`
+        // Create the severity chart once; update its data afterwards.
+        if (!severityChart) {
+            severityChart = new Chart(
+                document.getElementById("severity-chart"),
+                {
+                    type: "doughnut",
+                    data: {
+                        labels: severityLabels,
+                        datasets: [{
+                            data: severityValues,
+                            backgroundColor: severityBackgroundColors,
+                            borderColor: "#1b201f",
+                            borderWidth: 2,
+                            hoverBorderColor: "#56615e",
+                            hoverBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: "64%",
+                        plugins: {
+                            legend: {
+                                position: "bottom",
+                                labels: {
+                                    color: "#edf0e9",
+                                    usePointStyle: true,
+                                    pointStyle: "rectRounded",
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    padding: 14,
+                                    font: { family: chartFont, size: 10 }
+                                }
+                            },
+                            tooltip: {
+                                ...chartTooltip,
+                                displayColors: true,
+                                boxWidth: 8,
+                                boxHeight: 8,
+                                callbacks: {
+                                    label: context =>
+                                        ` ${context.label}: ${context.parsed.toLocaleString()} logs`
+                                }
                             }
                         }
                     }
                 }
+            );
+        } else {
+            const severityDataChanged =
+                JSON.stringify(severityChart.data.labels) !== JSON.stringify(severityLabels) ||
+                JSON.stringify(severityChart.data.datasets[0].data) !== JSON.stringify(severityValues);
+
+            if (severityDataChanged) {
+                severityChart.data.labels = severityLabels;
+                severityChart.data.datasets[0].data = severityValues;
+                severityChart.data.datasets[0].backgroundColor = severityBackgroundColors;
+                severityChart.update("none");
             }
-        );
+        }
     }
+
     async function loadServices() {
         try {
             const response = await fetch("/api/v1/services/");
@@ -1841,25 +1971,36 @@
             const services = data.services || [];
 
             // Update existing service filter dropdowns.
-            const dropdowns = [
-                document.getElementById("global-service"),
-                document.getElementById("service")
-            ];
+        const serviceNames = services.map(service => service.service_name);
 
-            dropdowns.forEach(dropdown => {
-                const selectedValue = dropdown.value;
+        const dropdowns = [
+            document.getElementById("global-service"),
+            document.getElementById("service")
+        ];
 
-                dropdown.innerHTML = '<option value="">All Services</option>';
+        dropdowns.forEach(dropdown => {
+            const existingNames = Array.from(dropdown.options)
+                .slice(1)
+                .map(option => option.value);
 
-                services.forEach(service => {
-                    const option = document.createElement("option");
-                    option.value = service.service_name;
-                    option.textContent = service.service_name;
-                    dropdown.appendChild(option);
-                });
+            if (JSON.stringify(existingNames) === JSON.stringify(serviceNames)) {
+                return;
+            }
 
-                dropdown.value = selectedValue;
+            const selectedValue = dropdown.value;
+
+            dropdown.replaceChildren(
+                new Option("All Services", "")
+            );
+
+            serviceNames.forEach(name => {
+                dropdown.add(new Option(name, name));
             });
+
+            dropdown.value = serviceNames.includes(selectedValue)
+                ? selectedValue
+                : "";
+        });
 
             // Update Service Health panel.
             renderServiceHealth(services);
@@ -1876,16 +2017,18 @@
     }
 
 
+
     function renderServiceHealth(services) {
         const grid = document.getElementById("service-health-grid");
         const summary = document.getElementById("service-health-summary");
 
-        grid.innerHTML = "";
-
         if (services.length === 0) {
             summary.textContent = "No services registered";
 
-            grid.textContent = "No monitored services found.";
+            if (grid.textContent !== "No monitored services found.") {
+                grid.textContent = "No monitored services found.";
+            }
+
             return;
         }
 
@@ -1901,50 +2044,106 @@
             }
         });
 
-        summary.textContent =
+        const summaryText =
             `${counts.Healthy} Healthy · ${counts.Degraded} Degraded · ${counts.Down} Down`;
 
-        services.forEach(service => {
-            const card = document.createElement("div");
-            card.className = "service-health-card";
+        if (summary.textContent !== summaryText) {
+            summary.textContent = summaryText;
+        }
 
-            const top = document.createElement("div");
-            top.className = "service-health-top";
+        const formatTimestamp = value =>
+            value ? new Date(value).toLocaleString() : "Not recorded";
 
-            const name = document.createElement("span");
-            name.className = "service-health-name";
-            name.textContent = service.service_name;
+        // Check whether the existing cards match the incoming services.
+        const existingCards = Array.from(
+            grid.querySelectorAll(".service-health-card")
+        );
 
-            const status = document.createElement("span");
-            status.className =
-                `health-status ${service.status.toLowerCase()}`;
-            status.textContent = service.status;
+        const existingNames = existingCards.map(card =>
+            card.dataset.serviceName
+        );
 
-            top.append(name, status);
+        const incomingNames = services.map(service =>
+            service.service_name
+        );
 
-            const details = document.createElement("div");
-            details.className = "service-health-details";
+        const structureChanged =
+            JSON.stringify(existingNames) !== JSON.stringify(incomingNames);
 
-            const formatTimestamp = value =>
-                value ? new Date(value).toLocaleString() : "Not recorded";
+        if (structureChanged) {
+            grid.innerHTML = "";
 
-            const detailLines = [
-                `Environment: ${service.environment}`,
-                `Version: ${service.service_version || "Not specified"}`,
-                `Last heartbeat: ${formatTimestamp(service.last_heartbeat)}`,
-                `Last activity: ${formatTimestamp(service.last_activity)}`
-            ];
+            services.forEach(service => {
+                const card = document.createElement("div");
+                card.className = "service-health-card";
+                card.dataset.serviceName = service.service_name;
 
-            detailLines.forEach(line => {
-                const detail = document.createElement("div");
-                detail.textContent = line;
-                details.appendChild(detail);
+                const top = document.createElement("div");
+                top.className = "service-health-top";
+
+                const name = document.createElement("span");
+                name.className = "service-health-name";
+                name.textContent = service.service_name;
+
+                const status = document.createElement("span");
+                status.className = "health-status";
+                status.dataset.role = "status";
+
+                top.append(name, status);
+
+                const details = document.createElement("div");
+                details.className = "service-health-details";
+
+                ["environment", "version", "heartbeat", "activity"].forEach(
+                    field => {
+                        const detail = document.createElement("div");
+                        detail.dataset.role = field;
+                        details.appendChild(detail);
+                    }
+                );
+
+                card.append(top, details);
+                grid.appendChild(card);
             });
+        }
 
-            card.append(top, details);
-            grid.appendChild(card);
+        // Update only the values that have actually changed.
+        services.forEach(service => {
+            const card = Array.from(
+                grid.querySelectorAll(".service-health-card")
+            ).find(item => item.dataset.serviceName === service.service_name);
+
+            if (!card) return;
+
+            const status = card.querySelector('[data-role="status"]');
+
+            const statusClass = `health-status ${service.status.toLowerCase()}`;
+
+            if (
+                status.className !== statusClass ||
+                status.textContent !== service.status
+            ) {
+                status.className = statusClass;
+                status.textContent = service.status;
+            }
+
+            const values = {
+                environment: `Environment: ${service.environment}`,
+                version: `Version: ${service.service_version || "Not specified"}`,
+                heartbeat: `Last heartbeat: ${formatTimestamp(service.last_heartbeat)}`,
+                activity: `Last activity: ${formatTimestamp(service.last_activity)}`
+            };
+
+            Object.entries(values).forEach(([field, value]) => {
+                const element = card.querySelector(`[data-role="${field}"]`);
+
+                if (element.textContent !== value) {
+                    element.textContent = value;
+                }
+            });
         });
     }
+
 
     function applyDashboardFilters() {
         loadStats();
@@ -2000,13 +2199,21 @@
         }
     }
 
+
+    let logsRequestId = 0;
+    let displayedLogsSignature = null;
+
     async function loadLogs(page = 1) {
         currentLogPage = page;
+
+        const requestId = ++logsRequestId;
         const tbody = document.getElementById("logs-table");
         const count = document.getElementById("log-count");
 
         const params = new URLSearchParams();
+
         params.set("page", currentLogPage);
+
         params.set(
             "start_time",
             new Date(
@@ -2040,19 +2247,17 @@
         if (service) params.set("service_name", service);
         else if (globalService) params.set("service_name", globalService);
 
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="empty-state">Loading logs...</td>
-            </tr>
-        `;
-
         try {
             const response = await fetch(`/api/v1/logs/?${params}`);
 
             if (!response.ok) {
                 throw new Error("Unable to load logs");
             }
+
             const data = await response.json();
+
+            // Ignore outdated responses.
+            if (requestId !== logsRequestId) return;
 
             const pageSize = data.page_size || 10;
             totalLogPages = Math.max(1, Math.ceil(data.count / pageSize));
@@ -2067,31 +2272,49 @@
                 ? 0
                 : (currentLogPage - 1) * pageSize + 1;
 
-            const endEntry = (currentLogPage - 1) * pageSize + data.results.length;
+            const endEntry =
+                (currentLogPage - 1) * pageSize + data.results.length;
 
-            count.textContent = `Showing ${startEntry}–${endEntry} of ${data.count}`;
+            count.textContent =
+                `Showing ${startEntry}–${endEntry} of ${data.count}`;
 
-            tbody.innerHTML = "";
+            // Compare actual log data, not the changing request timestamps.
+            const newSignature = JSON.stringify(data.results);
+
+            if (newSignature === displayedLogsSignature) {
+                return;
+            }
+
+            // Preserve the existing selected row where possible.
+            const selectedRow = tbody.querySelector(".selected-log-row");
+            const selectedEventId = selectedRow?.dataset.eventId;
+
+            const fragment = document.createDocumentFragment();
 
             data.results.forEach(log => {
                 const row = document.createElement("tr");
+
                 row.classList.add("clickable-row");
                 row.tabIndex = 0;
+                row.dataset.eventId = log.event_id;
                 row.setAttribute("aria-label", `Inspect log ${log.event_id}`);
 
                 const selectLog = () => {
-                    document.querySelectorAll("#logs-table .selected-log-row")
-                        .forEach(selectedRow => {
-                            selectedRow.classList.remove("selected-log-row");
-                            selectedRow.removeAttribute("aria-selected");
-                        });
+                    document.querySelectorAll(
+                        "#logs-table .selected-log-row"
+                    ).forEach(selectedRow => {
+                        selectedRow.classList.remove("selected-log-row");
+                        selectedRow.removeAttribute("aria-selected");
+                    });
 
                     row.classList.add("selected-log-row");
                     row.setAttribute("aria-selected", "true");
+
                     openLogDetails(log);
                 };
 
                 row.addEventListener("click", selectLog);
+
                 row.addEventListener("keydown", event => {
                     if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
@@ -2127,45 +2350,62 @@
                         cell.appendChild(badge);
                     }
 
-                    if (index === 4) {
-                        cell.className = "timestamp";
-                    }
-
                     if (index === 3) {
                         cell.className = "log-message";
                         cell.title = value ?? "";
                     }
 
+                    if (index === 4) {
+                        cell.className = "timestamp";
+                    }
+
                     row.appendChild(cell);
                 });
 
-                tbody.appendChild(row);
+                if (log.event_id === selectedEventId) {
+                    row.classList.add("selected-log-row");
+                    row.setAttribute("aria-selected", "true");
+                }
+
+                fragment.appendChild(row);
             });
 
             if (data.results.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="empty-state">
-                            No logs found. Try adjusting your filters.
-                        </td>
-                    </tr>
-                `;
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+
+                cell.colSpan = 5;
+                cell.className = "empty-state";
+                cell.textContent = "No logs found. Try adjusting your filters.";
+
+                row.appendChild(cell);
+                fragment.appendChild(row);
             }
 
-        } catch (error) {
-            console.error("Logs error:", error);
+            tbody.replaceChildren(fragment);
+            displayedLogsSignature = newSignature;
 
+        } catch (error) {
+            if (requestId !== logsRequestId) return;
+
+            console.error("Logs error:", error);
             count.textContent = "Unavailable";
 
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="empty-state">
-                        Unable to load logs. Please try again.
-                    </td>
-                </tr>
-            `;
+            // Keep the previously displayed logs visible on refresh failure.
+            if (displayedLogsSignature === null) {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+
+                cell.colSpan = 5;
+                cell.className = "empty-state";
+                cell.textContent = "Unable to load logs. Please try again.";
+
+                row.appendChild(cell);
+                tbody.replaceChildren(row);
+            }
         }
     }
+
 
     function clearFilters() {
         document.getElementById("search").value = "";
@@ -2322,6 +2562,9 @@
             closeLogDetails();
         }
     });
+
+
+
     function refreshDashboard() {
         loadServices();
         loadStats();
@@ -2360,11 +2603,42 @@
 
     // Initial dashboard load.
 
+    let isStatsAndLogsRefreshing = false;
+
     function initializeDashboard() {
         refreshDashboard();
 
         // Refresh service health every 15 seconds.
-        setInterval(loadServices, 15000);
+        setInterval(() => {
+            if (!document.hidden) {
+                loadServices();
+            }
+        }, 15000);
+
+        // Refresh overview, charts and recent logs every 30 seconds.
+        setInterval(async () => {
+            if (document.hidden || isStatsAndLogsRefreshing) {
+                return;
+            }
+
+            isStatsAndLogsRefreshing = true;
+
+            try {
+                const refreshTasks = [loadStats()];
+
+                const modal = document.getElementById("log-details-modal");
+
+                // Don't disturb an ongoing log investigation.
+                if (modal.classList.contains("hidden")) {
+                    refreshTasks.push(loadLogs(currentLogPage));
+                }
+
+                await Promise.all(refreshTasks);
+
+            } finally {
+                isStatsAndLogsRefreshing = false;
+            }
+        }, 30000);
     }
 
     initializeDashboard();

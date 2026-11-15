@@ -22,6 +22,12 @@ from dashboard.views import (
     dashboard_home,
     InfrastructureMetricIngestView,
 )
+from dashboard.views import (
+    health_check,
+    dashboard_home,
+    infrastructure_home,
+    InfrastructureMetricIngestView,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -38,5 +44,10 @@ urlpatterns = [
         "api/v1/infrastructure/metrics/",
         InfrastructureMetricIngestView.as_view(),
         name="infrastructure-metric-ingest",
+    ),
+    path(
+    "infrastructure/",
+    infrastructure_home,
+    name="infrastructure-home",
     ),
 ]
