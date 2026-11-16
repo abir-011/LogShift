@@ -1423,6 +1423,19 @@
             </div>
         </nav>
 
+        {% if user.is_staff and perms.logs.delete_logevent %}
+        <div class="nav-label">ADMINISTRATION</div>
+        <nav class="product-nav" aria-label="Administration">
+            <a href="/administration/logs/" class="nav-item" data-nav="log-management">
+                <span class="nav-icon" aria-hidden="true">⌘</span>
+                <span class="nav-copy">
+                    <span class="nav-title">Log Management</span>
+                    <span class="nav-description">Review storage and delete logs</span>
+                </span>
+            </a>
+        </nav>
+        {% endif %}
+
         <form method="post" action="{% url 'logout' %}" class="logout-form">
             {% csrf_token %}
             <button type="submit" class="logout-button">

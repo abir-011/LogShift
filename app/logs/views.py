@@ -274,6 +274,7 @@ class LogStatsView(APIView):
         })
 
 
+
 class ServiceListView(APIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
@@ -293,7 +294,19 @@ class ServiceListView(APIView):
             for service in services
         ]
 
-        return Response({"services": service_data})
+        environments = list(
+            LogEvent.objects
+            .exclude(environment="")
+            .values_list("environment", flat=True)
+            .distinct()
+            .order_by("environment")
+        )
+
+        return Response({
+            "services": service_data,
+            "environments": environments,
+        })
+
 
 class ServiceHeartbeatView(APIView):
     authentication_classes = [LogShiftAPIKeyAuthentication]

@@ -26,3 +26,8 @@ class LogEventAdmin(admin.ModelAdmin):
     )
 
     ordering = ("-timestamp",)
+
+    def has_delete_permission(self, request, obj=None):
+        """Route all log deletion through the audited management workflow."""
+
+        return False

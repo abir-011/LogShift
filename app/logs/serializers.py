@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from rest_framework.exceptions import ValidationError
 
 from .models import LogEvent, Service
 
@@ -74,6 +75,91 @@ class LogQuerySerializer(serializers.Serializer):
             )
 
         return attrs
+
+
+class LogDeletionFilterSerializer(serializers.Serializer):
+    start_time = TimezoneAwareDateTimeField(required=False)
+    end_time = TimezoneAwareDateTimeField(required=False)
+
+    service_name = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        max_length=150,
+        trim_whitespace=True,
+    )
+    level = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        max_length=20,
+        trim_whitespace=True,
+    )
+    environment = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        max_length=50,
+        trim_whitespace=True,
+    )
+
+    def to_internal_value(self, data):
+        unknown_fields = set(data.keys()) - set(self.fields)
+
+        if unknown_fields:
+            raise ValidationError({
+                field: "Unknown filter." for field in sorted(unknown_fields)
+            })
+
+        return super().to_internal_value(data)
+
+    def validate_level(self, value):
+        level = value.upper()
+        allowed_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+
+        if level not in allowed_levels:
+            raise serializers.ValidationError(
+                "Allowed values are DEBUG, INFO, WARNING, ERROR and CRITICAL."
+            )
+
+        return level
+
+    def validate(self, attrs):
+        start_time = attrs.get("start_time")
+        end_time = attrs.get("end_time")
+
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError(
+                "start_time must be earlier than end_time."
+            )
+
+        if not attrs:
+            raise serializers.ValidationError(
+                "At least one deletion filter is required."
+            )
+
+        return attrs
+
+
+
+class LogDeletionRequestSerializer(serializers.Serializer):
+    preview_token = serializers.CharField(allow_blank=False)
+    confirmation = serializers.BooleanField()
+
+    def to_internal_value(self, data):
+        unknown_fields = set(data.keys()) - set(self.fields)
+
+        if unknown_fields:
+            raise ValidationError({
+                field: "Unknown field." for field in sorted(unknown_fields)
+            })
+
+        return super().to_internal_value(data)
+
+    def validate_confirmation(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Explicit confirmation is required before deleting logs."
+            )
+
+        return value
 
 
 class LogEventSerializer(serializers.ModelSerializer):

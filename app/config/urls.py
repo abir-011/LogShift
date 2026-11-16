@@ -20,13 +20,9 @@ from django.contrib.auth import views as auth_views
 from dashboard.views import (
     health_check,
     dashboard_home,
-    InfrastructureMetricIngestView,
-)
-from dashboard.views import (
-    health_check,
-    dashboard_home,
     infrastructure_home,
     InfrastructureMetricIngestView,
+    log_management_home,
 )
 
 urlpatterns = [
@@ -49,5 +45,10 @@ urlpatterns = [
     "infrastructure/",
     infrastructure_home,
     name="infrastructure-home",
+    ),
+    path(
+        "administration/logs/",
+        log_management_home,
+        name="log-management-home",
     ),
 ]

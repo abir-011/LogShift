@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Management | LogShift</title>
+
+
+    <style>
+        :root {
+            /* Shared LogShift dashboard palette */
+            --bg: #111514;
+            --sidebar: #161a1a;
+            --surface: #1b201f;
+            --surface-raised: #222827;
+            --surface-hover: #293130;
+            --input: #151a19;
+
+            --border: #394240;
+            --border-strong: #56615e;
+
+            --text: #edf0e9;
+            --muted: #9ca7a3;
+            --muted-strong: #cbd1ca;
+
+            --accent: #70bdb4;
+            --accent-strong: #569e96;
+            --accent-soft: rgba(112, 189, 180, 0.14);
+
+            --blue: #88b7c8;
+            --green: #7eb49a;
+
+            --shadow: 0 16px 36px rgba(5, 8, 8, 0.24);
+
+            --radius: 8px;
+            --radius-lg: 11px;
+
+            --sidebar-width: 252px;
+
+            --ui-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+            --technical-font: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-width: 320px;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--text);
+            background: linear-gradient(
+                135deg,
+                #141817 0%,
+                var(--bg) 56%,
+                #101312 100%
+            );
+            font-family: var(--ui-font);
+            line-height: 1.45;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        /* ==========================================
+        Main layout
+        ========================================== */
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ==========================================
+        Sidebar
+        ========================================== */
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            min-height: 0;
+            padding: 26px 16px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+        }
+
+        .brand {
+            padding: 0 12px;
+            margin-bottom: 30px;
+            color: var(--text);
+        }
+
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-mark {
+            display: flex;
+            align-items: end;
+            gap: 3px;
+            height: 28px;
+        }
+
+        .brand-mark span {
+            display: block;
+            width: 5px;
+            border-radius: 4px;
+            background: var(--accent);
+        }
+
+        .brand-mark span:nth-child(1) {
+            height: 13px;
+            opacity: .72;
+        }
+
+        .brand-mark span:nth-child(2) {
+            height: 22px;
+            opacity: .86;
+        }
+
+        .brand-mark span:nth-child(3) {
+            height: 28px;
+        }
+
+        .brand-name {
+            font-size: 22px;
+            font-weight: 720;
+            letter-spacing: -0.8px;
+        }
+
+        .brand-context,
+        .nav-label,
+        .section-kicker {
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+        .field-label {
+            color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            font-weight: 650;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .summary-grid .section-kicker {
+            font-family: var(--technical-font);
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .brand-context {
+            display: block;
+            margin-top: 3px;
+            font-family: var(--technical-font);
+            font-size: 9px;
+            letter-spacing: .75px;
+        }
+
+        .nav-label {
+            padding: 0 12px;
+            margin: 0 0 14px;
+            letter-spacing: 1.35px;
+        }
+
+        .product-nav {
+            display: grid;
+            gap: 7px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-height: 58px;
+            padding: 10px 11px;
+            color: var(--muted);
+            border: 1px solid transparent;
+            border-radius: 8px;
+            text-decoration: none;
+            transition:
+                background-color .16s ease,
+                color .16s ease,
+                border-color .16s ease;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-hover);
+            color: var(--text);
+        }
+
+        .nav-item[aria-disabled="true"] {
+            cursor: not-allowed;
+            opacity: 0.58;
+        }
+
+        .nav-item[aria-disabled="true"]:hover {
+            background: transparent;
+            color: var(--muted);
+        }
+
+        .nav-item.active {
+            color: var(--text);
+            background: var(--accent-soft);
+            border-color: rgba(112, 189, 180, .38);
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .nav-icon {
+            width: 20px;
+            color: var(--muted-strong);
+            font-size: 19px;
+            line-height: 1;
+            text-align: center;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--accent);
+        }
+
+        .nav-copy {
+            min-width: 0;
+        }
+
+        .nav-title {
+            display: block;
+            color: inherit;
+            font-size: 14px;
+            font-weight: 650;
+        }
+
+        .nav-description {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        .nav-status {
+            margin-left: auto;
+            flex-shrink: 0;
+            padding: 4px 6px;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: var(--technical-font);
+            font-size: 8px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        /* Logout and sidebar footer */
+
+        .logout-form {
+            padding: 20px 0 0;
+            margin-top: auto;
+            margin-bottom: 12px;
+        }
+
+        .logout-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px;
+            color: var(--text);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font: inherit;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            background: var(--surface);
+            border-color: var(--border-strong);
+        }
+
+        .sidebar-footer {
+            padding: 15px 12px;
+            margin-top: 0;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .sidebar-footer strong {
+            color: var(--muted-strong);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            letter-spacing: .45px;
+            text-transform: uppercase;
+        }
+
+        /* ==========================================
+        Main content and page heading
+        ========================================== */
+
+        .main {
+            flex: 1;
+            min-width: 0;
+            padding: 30px 34px 42px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-eyebrow {
+            margin: 0 0 5px;
+            color: var(--accent);
+            font-family: var(--technical-font);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .main h1,
+        .main h2 {
+            margin: 0;
+            color: var(--text);
+            font-family: var(--ui-font);
+        }
+
+        .main h1 {
+            font-size: 27px;
+            font-weight: 720;
+            letter-spacing: -.9px;
+        }
+
+        .main h2 {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -.3px;
+        }
+
+        .page-subtitle,
+        .section-subtitle {
+            margin: 7px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        /* ==========================================
+        Status messages
+        ========================================== */
+
+        .status {
+            min-height: 0;
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .status.error {
+            color: #f09a90;
+        }
+
+        .status.success {
+            color: var(--green);
+        }
+
+        /* ==========================================
+        Summary cards
+        ========================================== */
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 26px;
+        }
+
+        .card {
+            position: relative;
+            min-height: 150px;
+            padding: 18px;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card::before {
+            position: absolute;
+            top: 0;
+            left: 18px;
+            width: 42px;
+            height: 2px;
+            content: "";
+            background: var(--accent);
+            opacity: 0.85;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-strong);
+            box-shadow: 0 18px 32px rgba(2, 8, 23, 0.33);
+        }
+        .metric-icon {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 700;
+            background: rgba(136, 183, 200, 0.14);
+            color: var(--blue);
+        }
+
+        .metric-icon.teal {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .metric-icon.green {
+            background: rgba(126, 180, 154, 0.14);
+            color: var(--green);
+        }
+        .metric-value {
+            display: block;
+            margin-top: 21px;
+            color: var(--text);
+            font-size: 31px;
+            font-weight: 720;
+            letter-spacing: -0.8px;
+            font-variant-numeric: tabular-nums;
+            overflow-wrap: anywhere;
+        }
+
+        .summary-grid article:nth-child(2) .metric-value,
+        .summary-grid article:nth-child(3) .metric-value {
+            font-size: 23px;
+            letter-spacing: -0.6px;
+        }
+
+        .metric-caption {
+            display: block;
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        /* ==========================================
+        Panels and section headings
+        ========================================== */
+
+        .panel {
+            padding: 18px 20px;
+            margin-top: 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+        .panel .section-kicker {
+            font-family: var(--technical-font);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+        }
+        /* ==========================================
+        Filters and form fields
+        ========================================== */
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+            align-items: end;
+            gap: 12px;
+        }
+
+        .field {
+            display: grid;
+            gap: 7px;
+            min-width: 0;
+        }
+
+        input,
+        select {
+            width: 100%;
+            min-height: 40px;
+            font-family: var(--ui-font);
+            font-size: 13px;
+            padding: 9px 10px;
+            color: var(--text);
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        input:hover,
+        select:hover {
+            border-color: var(--border-strong);
+        }
+
+        input::placeholder {
+            color: var(--muted);
+            opacity: .75;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            min-height: 18px;
+            accent-color: var(--accent);
+        }
+
+        /* ==========================================
+        Buttons
+        ========================================== */
+
+        .button {
+            min-height: 40px;
+            padding: 9px 15px;
+            color: #102020;
+            background: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            font-family: var(--ui-font);
+            font-size: 13px;
+            font-weight: 650;
+            cursor: pointer;
+            transition:
+                background-color .16s ease,
+                border-color .16s ease,
+                opacity .16s ease;
+        }
+
+        .button:hover:not(:disabled) {
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+        }
+
+        .button:disabled {
+            cursor: not-allowed;
+            opacity: .45;
+        }
+
+        .button-danger {
+            color: #ffecea;
+            background: #9e493f;
+            border-color: #b45a50;
+        }
+
+        .button-danger:hover:not(:disabled) {
+            background: #be5d51;
+            border-color: #be5d51;
+        }
+
+        /* ==========================================
+        Deletion History
+        ========================================== */
+
+        .history-entry {
+            padding: 14px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .history-entry:first-child {
+            border-top: none;
+        }
+
+        .history-entry-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .history-entry-heading strong {
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .history-entry-heading span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .history-entry p {
+            margin: 5px 0;
+            color: var(--muted);
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        .history-entry p strong {
+            color: var(--text);
+        }
+
+        .history-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .history-pagination[hidden] {
+            display: none;
+        }
+
+        /* ==========================================
+        Deletion preview and confirmation
+        ========================================== */
+
+        .preview {
+            display: none;
+            padding: 15px;
+            margin-top: 18px;
+            background: var(--surface-raised);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .preview.visible {
+            display: block;
+        }
+
+        .preview-count {
+            margin: 8px 0;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .criteria {
+            color: var(--muted);
+            font-family: var(--technical-font);
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .criteria-item {
+            display: grid;
+            grid-template-columns: 160px minmax(0, 1fr);
+            align-items: center;
+            gap: 12px;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .criteria-item:last-child {
+            border-bottom: none;
+        }
+
+        .criteria-label {
+            color: var(--muted);
+            font-family: var(--ui-font);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .criteria-value {
+            color: var(--text);
+            text-align: left;
+            overflow-wrap: anywhere;
+        }
+
+        .criteria-section {
+            margin-top: 18px;
+        }
+
+        .criteria-section h3 {
+            margin: 0 0 12px;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .criteria-header {
+            display: grid;
+            grid-template-columns: 160px minmax(0, 1fr);
+            gap: 12px;
+            padding: 8px 0;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .preview-expiry-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            padding-top: 12px;
+            margin-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .preview-expiry-row strong {
+            color: var(--text);
+            font-size: 12px;
+        }
+
+        .preview-expiry {
+            display: inline-block;
+            margin: 0;
+            padding: 7px 11px;
+            color: #f0a39a;
+            background: rgba(158, 73, 63, 0.16);
+            border: 1px solid rgba(180, 90, 80, 0.5);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 650;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .warning {
+            background: rgba(107, 82, 37, .18);
+            border-color: #725d39;
+        }
+
+        .warning p {
+            color: #e2c17f;
+        }
+
+        .confirmation-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .confirmation-row input {
+            flex: 0 0 auto;
+            width: 18px;
+            min-height: 18px;
+            accent-color: var(--accent);
+        }
+
+        .growth-note {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        /* ==========================================
+        Focus accessibility
+        ========================================== */
+
+        .nav-item:focus-visible,
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* ==========================================
+        Responsive layout
+        Matches the main dashboard behaviour
+        ========================================== */
+
+        @media (max-width: 1050px) {
+            .main {
+                padding: 26px;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .filter-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 750px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                padding: 22px 16px;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .main h1 {
+                font-size: 21px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .summary-grid,
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                padding: 17px;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-lockup">
+                    <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="brand-name">LogShift</span>
+                </div>
+                <span class="brand-context">Observability Console</span>
+            </div>
+            <div class="nav-label">PRODUCT</div>
+            <nav class="product-nav" aria-label="Product navigation">
+                <a href="/" class="nav-item"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-copy"><span class="nav-title">Observe</span><span class="nav-description">System health &amp; activity</span></span></a>
+                <a href="/infrastructure/" class="nav-item"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-copy"><span class="nav-title">Infrastructure</span><span class="nav-description">Monitor infrastructure resources</span></span></a>
+                <a href="/#logs-section" class="nav-item"><span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-copy"><span class="nav-title">Investigate</span><span class="nav-description">Explore and analyse logs</span></span></a>
+            <div class="nav-item" aria-disabled="true">
+                <span class="nav-icon" aria-hidden="true">ϟ</span>
+                <span class="nav-copy">
+                    <span class="nav-title">Resolve</span>
+                    <span class="nav-description">Alerts, diagnostics &amp; actions</span>
+                </span>
+                <span class="nav-status">COMING SOON</span>
+            </div>
+            </nav>
+            <div class="nav-label">Administration</div>
+            <nav class="product-nav" aria-label="Administration">
+                <a href="/administration/logs/" class="nav-item active" aria-current="page"><span class="nav-icon" aria-hidden="true">⌘</span><span class="nav-copy"><span class="nav-title">Log Management</span><span class="nav-description">Review storage and delete logs</span></span></a>
+            </nav>
+            <form method="post" action="{% url 'logout' %}" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="logout-button"><span aria-hidden="true">↪</span> Logout</button>
+            </form>
+            <div class="sidebar-footer"><strong>LogShift</strong><br>Observe. Investigate. Resolve.</div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div>
+                    <p class="page-eyebrow">Administration</p>
+                    <h1>Log Management</h1>
+                    <p class="page-subtitle">Review retained log storage and safely remove selected records.</p>
+                </div>
+            </header>
+            <p id="status-message" class="status" role="status" aria-live="polite"></p>
+
+            <section class="summary-grid" aria-label="Log storage overview">
+
+                <article class="card">
+                    <span class="section-kicker">Stored logs</span>
+                    <span class="metric-icon" aria-hidden="true">▤</span>
+                    <span id="total-logs" class="metric-value">—</span>
+                    <span class="metric-caption">All retained events</span>
+                </article>
+
+                <article class="card">
+                    <span class="section-kicker">Oldest log</span>
+                    <span class="metric-icon teal" aria-hidden="true">◷</span>
+                    <span id="oldest-log" class="metric-value">—</span>
+                    <span class="metric-caption">Event timestamp</span>
+                </article>
+
+                <article class="card">
+                    <span class="section-kicker">Newest log</span>
+                    <span class="metric-icon green" aria-hidden="true">◷</span>
+                    <span id="newest-log" class="metric-value">—</span>
+                    <span class="metric-caption">Event timestamp</span>
+                </article>
+
+                <article class="card">
+                    <span class="section-kicker">Log Storage</span>
+                    <span class="metric-icon" aria-hidden="true">▤</span>
+                    <span id="log-storage-size" class="metric-value">—</span>
+                    <span class="metric-caption">Log events and indexes</span>
+                    <span class="metric-caption">
+                        Total Database Size:
+                        <strong id="database-size">—</strong>
+                    </span>
+                </article>
+
+            </section>
+
+            <section class="panel">
+                <div class="panel-heading"><div><p class="section-kicker">Growth</p><h2>Historical growth</h2></div></div>
+                <p class="growth-note">Historical database-size data is not available yet.</p>
+            </section>
+
+            <section class="panel" aria-labelledby="deletion-heading">
+                <div class="panel-heading"><div><p class="section-kicker">Destructive action</p><h2 id="deletion-heading">Delete selected logs</h2><p class="section-subtitle">Preview the exact matching records before any deletion is performed.</p></div></div>
+
+                <div class="filter-grid">
+                    <label class="field">
+                        <span class="field-label">Start time (UTC)</span>
+                        <input id="start-time-filter" type="datetime-local">
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">End time (UTC)</span>
+                        <input id="end-time-filter" type="datetime-local">
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">Service</span>
+                        <select id="service-filter">
+                            <option value="">All services</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">Severity</span>
+                        <select id="level-filter">
+                            <option value="">All severities</option>
+                            <option>DEBUG</option>
+                            <option>INFO</option>
+                            <option>WARNING</option>
+                            <option>ERROR</option>
+                            <option>CRITICAL</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">Environment</span>
+                        <select id="environment-filter">
+                            <option value="">All environments</option>
+                        </select>
+                    </label>
+
+                    <button id="preview-button" class="button" type="button">Preview deletion</button>
+                </div>
+
+
+                <div id="preview-panel" class="preview" aria-live="polite">
+                    <p class="section-kicker">Deletion Preview</p>
+
+                    <p id="preview-count" class="preview-count"></p>
+
+                    <div class="criteria-section">
+                        <h3>Selected criteria</h3>
+
+                        <div class="criteria-header">
+                            <span>Filter</span>
+                            <span>Value</span>
+                        </div>
+
+                        <div id="preview-criteria" class="criteria"></div>
+                    </div>
+
+                    <div class="preview-expiry-row">
+                        <p id="preview-expiry" class="preview-expiry"></p>
+                    </div>
+
+                    <p class="section-subtitle">
+                        No logs have been deleted. Review the criteria before confirming.
+                    </p>
+                </div>
+            </section>
+
+            <section class="panel warning" aria-labelledby="confirmation-heading">
+                <div class="panel-heading"><div><p class="section-kicker">Confirmation</p><h2 id="confirmation-heading">Confirm permanent deletion</h2></div></div>
+                <p>This action permanently removes the previewed log records and cannot be undone.</p>
+                <label class="confirmation-row"><input id="confirmation" type="checkbox" disabled><span id="confirmation-text">Create a valid preview before confirming deletion.</span></label>
+                <button id="delete-button" class="button button-danger" type="button" disabled>Delete logs permanently</button>
+            </section>
+
+
+            <section class="panel" aria-labelledby="history-heading">
+                <div class="panel-heading">
+                    <div>
+                        <p class="section-kicker">Audit trail</p>
+                        <h2 id="history-heading">Deletion History</h2>
+                        <p class="section-subtitle">
+                            Review previous log deletion activity.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="deletion-history-list">
+                    <p class="section-subtitle">Loading deletion history...</p>
+                </div>
+
+                <div id="history-pagination" class="history-pagination" hidden>
+                    <button id="history-previous" class="button secondary" type="button">
+                        Previous
+                    </button>
+                    <span id="history-page-info"></span>
+                    <button id="history-next" class="button secondary" type="button">
+                        Next
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        let previewToken = null;
+        let previewGeneration = 0;
+        let previewExpiryInterval = null;
+        let historyPage = 1;
+        let historyTotalPages = 0;
+        const statusMessage = document.getElementById("status-message");
+        const previewPanel = document.getElementById("preview-panel");
+        const confirmation = document.getElementById("confirmation");
+        const deleteButton = document.getElementById("delete-button");
+        const confirmationText = document.getElementById("confirmation-text");
+
+        function setStatus(message = "", type = "") {
+            statusMessage.textContent = message;
+            statusMessage.className = `status ${type}`;
+        }
+
+        function formatNumber(value) {
+            return new Intl.NumberFormat().format(value);
+        }
+
+        function formatBytes(value) {
+            if (value === null || value === undefined) return "Unavailable";
+            const units = ["B", "KB", "MB", "GB", "TB"];
+            let size = Number(value);
+            let unit = 0;
+            while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit += 1; }
+            return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+        }
+
+        function formatTimestamp(value) {
+            return value ? new Date(value).toLocaleString() : "No logs retained";
+        }
+
+        function csrfToken() {
+            return document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+        }
+
+        async function responseData(response) {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const detail = data.detail || Object.values(data).flat().join(" ") || "Request failed.";
+                throw new Error(detail);
+            }
+            return data;
+        }
+
+        function clearPreview() {
+            previewToken = null;
+            if (previewExpiryInterval) {
+                clearInterval(previewExpiryInterval);
+                previewExpiryInterval = null;
+            }
+            document.getElementById("preview-expiry").textContent = "";
+            document.getElementById("preview-criteria").innerHTML = "";
+            document.getElementById("preview-count").textContent = "";
+            previewPanel.classList.remove("visible");
+            confirmation.checked = false;
+            confirmation.disabled = true;
+            confirmationText.textContent = "Create a valid preview before confirming deletion.";
+            deleteButton.disabled = true;
+        }
+
+        function invalidatePreview() {
+            previewGeneration += 1;
+            clearPreview();
+        }
+
+        function updateDeleteState() {
+            deleteButton.disabled = !previewToken || !confirmation.checked;
+        }
+
+
+        function filters() {
+            const params = new URLSearchParams();
+
+            const startTime = document.getElementById("start-time-filter").value;
+            const endTime = document.getElementById("end-time-filter").value;
+            const serviceName = document.getElementById("service-filter").value;
+            const level = document.getElementById("level-filter").value;
+            const environment = document.getElementById("environment-filter").value.trim();
+
+
+            if (startTime) {
+                params.set("start_time", `${startTime}:00Z`);
+            }
+
+            if (endTime) {
+                params.set("end_time", `${endTime}:00Z`);
+            }
+
+            if (serviceName) params.set("service_name", serviceName);
+            if (level) params.set("level", level);
+            if (environment) params.set("environment", environment);
+
+            return params;
+        }
+
+        function criteriaText(criteria) {
+            const labels = {
+                start_time: "Start time (UTC)",
+                end_time: "End time (UTC)",
+                service_name: "Service",
+                level: "Severity",
+                environment: "Environment"
+            };
+
+            return Object.entries(criteria)
+                .map(([key, value]) => {
+                    let displayValue = value;
+
+                    if (key === "start_time" || key === "end_time") {
+                        displayValue = new Date(value).toLocaleString("en-GB", {
+                            timeZone: "UTC",
+                            dateStyle: "medium",
+                            timeStyle: "short"
+                        }) + " UTC";
+                    }
+
+                    return `
+                        <div class="criteria-item">
+                            <span class="criteria-label">${escapeHtml(labels[key] || key)}</span>
+                            <span class="criteria-value">${escapeHtml(displayValue)}</span>
+                        </div>
+                    `;
+                })
+                .join("");
+        }
+
+        async function loadSummary() {
+            try {
+                const data = await responseData(await fetch("/api/v1/admin/logs/summary/"));
+                document.getElementById("total-logs").textContent = formatNumber(data.total_logs);
+                document.getElementById("oldest-log").textContent = formatTimestamp(data.oldest_log);
+                document.getElementById("newest-log").textContent = formatTimestamp(data.newest_log);
+                document.getElementById("log-storage-size").textContent =
+                    data.log_storage_size_available
+                        ? formatBytes(data.log_storage_size_bytes)
+                        : "Unavailable";
+
+                document.getElementById("database-size").textContent =
+                    data.database_size_available
+                        ? formatBytes(data.database_size_bytes)
+                        : "Unavailable";
+            } catch (error) { setStatus(error.message, "error"); }
+        }
+
+
+        async function loadServices() {
+            try {
+                const data = await responseData(await fetch("/api/v1/services/"));
+
+                const services = [...new Set(
+                    data.services.map(service => service.service_name)
+                )].sort();
+
+                const environments = data.environments || [];
+
+                const serviceSelect = document.getElementById("service-filter");
+                const environmentSelect = document.getElementById("environment-filter");
+
+                services.forEach(serviceName => {
+                    const option = document.createElement("option");
+                    option.value = serviceName;
+                    option.textContent = serviceName;
+                    serviceSelect.appendChild(option);
+                });
+
+                environments.forEach(environment => {
+                    const option = document.createElement("option");
+                    option.value = environment;
+                    option.textContent = environment;
+                    environmentSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                setStatus("Unable to load service and environment options.", "error");
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[character]);
+        }
+
+        async function loadDeletionHistory(page = 1) {
+            const historyList = document.getElementById("deletion-history-list");
+            const pagination = document.getElementById("history-pagination");
+
+            historyList.innerHTML = '<p class="section-subtitle">Loading deletion history...</p>';
+
+            try {
+                const data = await responseData(
+                    await fetch(`/api/v1/admin/logs/deletion-history/?page=${page}`)
+                );
+
+                historyPage = data.page;
+                historyTotalPages = data.total_pages;
+
+                if (data.results.length === 0) {
+                    historyList.innerHTML = '<p class="section-subtitle">No deletion history available yet.</p>';
+                    pagination.hidden = true;
+                    return;
+                }
+
+                historyList.innerHTML = data.results.map(audit => {
+                    const performedAt = new Date(audit.performed_at).toLocaleString();
+
+                    const criteria = Object.entries(audit.filters)
+                        .map(([key, value]) => `${escapeHtml(key)}: ${escapeHtml(value)}`)
+                        .join(" · ") || "No filters recorded";
+
+                    return `
+                        <div class="history-entry">
+                            <div class="history-entry-heading">
+                                <strong>${formatNumber(audit.deleted_count)} records deleted</strong>
+                                <span>${performedAt}</span>
+                            </div>
+                            <p><strong>Deleted by:</strong> ${escapeHtml(audit.actor_username)}</p>
+                            <p><strong>Filters:</strong> ${criteria}</p>
+                            <p><strong>Source:</strong> ${escapeHtml(audit.source)}</p>
+                        </div>
+                    `;
+                }).join("");
+
+                document.getElementById("history-page-info").textContent =
+                    `Page ${historyPage} of ${historyTotalPages}`;
+
+                document.getElementById("history-previous").disabled = historyPage <= 1;
+                document.getElementById("history-next").disabled =
+                    historyPage >= historyTotalPages;
+
+                pagination.hidden = historyTotalPages <= 1;
+
+            } catch (error) {
+                historyList.innerHTML =
+                    '<p class="section-subtitle">Unable to load deletion history.</p>';
+                pagination.hidden = true;
+            }
+        }
+
+        async function previewDeletion() {
+            const params = filters();
+            if (!params.toString()) { setStatus("Select at least one deletion filter.", "error"); return; }
+            const requestGeneration = ++previewGeneration;
+            clearPreview();
+            setStatus("Creating deletion preview…");
+            try {
+                const data = await responseData(await fetch(`/api/v1/admin/logs/deletion-preview/?${params.toString()}`));
+                if (requestGeneration !== previewGeneration) return;
+                previewToken = data.preview_token;
+                document.getElementById("preview-count").textContent = `${formatNumber(data.count)} matching log record${data.count === 1 ? "" : "s"}`;
+                document.getElementById("preview-criteria").innerHTML = criteriaText(data.filters);
+                const expiresAt = new Date(data.expires_at);
+
+                function updatePreviewExpiry() {
+                    const remaining = Math.max(0, expiresAt - Date.now());
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+
+                    document.getElementById("preview-expiry").textContent =
+                        remaining > 0
+                            ? `Preview expires in ${minutes}m ${seconds}s`
+                            : "Preview expired. Create a new preview to continue.";
+
+                    if (remaining <= 0) {
+                        invalidatePreview();
+                    }
+                }
+
+                updatePreviewExpiry();
+                previewExpiryInterval = setInterval(updatePreviewExpiry, 1000);
+                previewPanel.classList.add("visible");
+                if (data.count === 0) {
+                    previewToken = null;
+                    confirmationText.textContent = "No matching logs are available for deletion.";
+                    setStatus("Preview created. No matching logs were found.", "success");
+                    return;
+                }
+                confirmation.disabled = false;
+                confirmationText.textContent = `I understand that ${formatNumber(data.count)} log record${data.count === 1 ? "" : "s"} will be permanently deleted.`;
+                setStatus("Preview created. No logs have been deleted.", "success");
+            } catch (error) { setStatus(error.message, "error"); }
+        }
+
+        async function deleteLogs() {
+            if (!previewToken || !confirmation.checked) return;
+            deleteButton.disabled = true;
+            setStatus("Deleting previewed logs…");
+            try {
+                const data = await responseData(await fetch("/api/v1/admin/logs/delete/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+                    body: JSON.stringify({ preview_token: previewToken, confirmation: true }),
+                }));
+                setStatus(`${formatNumber(data.deleted_count)} log record${data.deleted_count === 1 ? "" : "s"} deleted successfully.`, "success");
+                invalidatePreview();
+                await loadSummary();
+                await loadDeletionHistory();
+            } catch (error) { setStatus(error.message, "error"); updateDeleteState(); }
+        }
+
+        document.getElementById("preview-button").addEventListener("click", previewDeletion);
+        document.getElementById("history-previous").addEventListener("click", () => {
+            if (historyPage > 1) {
+                loadDeletionHistory(historyPage - 1);
+            }
+        });
+
+        document.getElementById("history-next").addEventListener("click", () => {
+            if (historyPage < historyTotalPages) {
+                loadDeletionHistory(historyPage + 1);
+            }
+        });
+        document.querySelectorAll(
+            "#start-time-filter, #end-time-filter, #service-filter, #level-filter, #environment-filter"
+        ).forEach(element => element.addEventListener("change", invalidatePreview));
+        confirmation.addEventListener("change", updateDeleteState);
+        deleteButton.addEventListener("click", deleteLogs);
+        loadSummary();
+        loadServices();
+        loadDeletionHistory();
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -90,3 +91,33 @@ class Service(models.Model):
             return "Degraded"
 
         return "Down"
+
+
+class LogDeletionAudit(models.Model):
+    """A durable record of a completed log-management deletion."""
+
+    SOURCE_MANUAL = "manual"
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="log_deletion_audits",
+    )
+    actor_username = models.CharField(max_length=150)
+    performed_at = models.DateTimeField(auto_now_add=True)
+    filters = models.JSONField(default=dict)
+    preview_count = models.PositiveBigIntegerField()
+    deleted_count = models.PositiveBigIntegerField()
+    source = models.CharField(max_length=20, default=SOURCE_MANUAL)
+
+    class Meta:
+        db_table = "log_deletion_audits"
+        ordering = ["-performed_at"]
+
+    def __str__(self):
+        return (
+            f"{self.source} deletion of {self.deleted_count} logs "
+            f"by {self.actor_username}"
+        )

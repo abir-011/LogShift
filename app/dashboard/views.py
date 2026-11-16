@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db import connection
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -8,6 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 
 from logs.authentication import MonitoringAPIKeyAuthentication
+from logs.permissions import can_manage_logs
 from .serializers import InfrastructureMetricSerializer
 from .models import InfrastructureMetric
 from rest_framework.authentication import SessionAuthentication
@@ -40,6 +42,14 @@ def dashboard_home(request):
 @login_required
 def infrastructure_home(request):
     return render(request, "dashboard/infrastructure.html")
+
+
+@login_required
+def log_management_home(request):
+    if not can_manage_logs(request.user):
+        raise PermissionDenied
+
+    return render(request, "dashboard/log_management.html")
 
 class InfrastructureMetricIngestView(APIView):
     permission_classes = [AllowAny]
